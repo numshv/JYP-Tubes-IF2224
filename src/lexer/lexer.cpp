@@ -97,6 +97,25 @@ vector<Token> runDFA(
             transition_found = true;
         }
 
+        // Handle "other" = any except a specific character (NON DFA)
+        else if (transition[state].count("other")) {
+            if (state == "q_lparen_or_comment" && c != '*') {
+                // Treat it as a normal '(' token
+                string tokType = "LPARENTHESIS";
+                tokens.push_back({tokType, "("});
+                
+                // Reset DFA to start state and reprocess this char
+                state = rules["dfa_config"]["start_state"];
+                cur.clear();
+                --i;
+                continue;
+            } else {
+                next = transition[state]["other"];
+                transition_found = true;
+            }
+        }
+
+
         if (transition_found) {
             cur += c;
             state = next;
