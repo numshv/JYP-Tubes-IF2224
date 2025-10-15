@@ -8,10 +8,12 @@
       "q_scientific",
       "q_char_lit",
       "q_string_lit",
-      "q_comment"
+      "q_comment",
+      "q_minus",
+      "q_plus"
     ]
   },
-  
+
   "keyword_lookup": {
     "keywords": [
       "program", "var", "begin", "end", "if", "then", "else",
@@ -22,7 +24,7 @@
     "logical_operators": ["and", "or", "not"],
     "arithmetic_word_operators": ["div", "mod"]
   },
-  
+
   "transitions": [
     {
       "comment": "IDENTIFIER/KEYWORD - Pattern: letter (letter|digit|_)*",
@@ -34,45 +36,33 @@
       ]
     },
     {
-      "comment": "NUMBER - Pattern: [-]?digit+ ([.]digit+)? ([eE][+-]?digit+)?",
+      "comment": "NUMBER - Pattern: digit+(.digit+)?([eE][+/-]?digit+)?",
       "rules": [
-
         {"from": "q0", "input": "digit", "to": "q_number"},
-        {"from": "q0", "input": "-", "to": "q_minus"},
-        {"from": "q_minus", "input": "digit", "to": "q_number"},
-        
-        
         {"from": "q_number", "input": "digit", "to": "q_number"},
         {"from": "q_number", "input": ".", "to": "q_dot"},
-        
         {"from": "q_dot", "input": "digit", "to": "q_float"},
         {"from": "q_float", "input": "digit", "to": "q_float"},
-
-        {"from": "q_number", "input": "e", "to": "q_exp"},
-        {"from": "q_number", "input": "E", "to": "q_exp"},
-        {"from": "q_float", "input": "e", "to": "q_exp"},
-        {"from": "q_float", "input": "E", "to": "q_exp"},
-        
-        {"from": "q_exp", "input": "+", "to": "q_exp_sign"},
-        {"from": "q_exp", "input": "-", "to": "q_exp_sign"},
+        {"from": "q_number", "input": "e/E", "to": "q_exp"},
+        {"from": "q_float", "input": "e/E", "to": "q_exp"},
+        {"from": "q_exp", "input": "+/-", "to": "q_exp_sign"},
         {"from": "q_exp", "input": "digit", "to": "q_scientific"},
         {"from": "q_exp_sign", "input": "digit", "to": "q_scientific"},
-        
         {"from": "q_scientific", "input": "digit", "to": "q_scientific"}
       ]
     },
     {
-      "comment": "CHARACTER LITERAL - Pattern: 'x' (exactly 1 char between quotes)",
+      "comment": "CHARACTER LITERAL - Pattern: 'c' (single char inside quotes)",
       "rules": [
         {"from": "q0", "input": "'", "to": "q_char_start"},
-        {"from": "q_char_start", "input": "any", "to": "q_char_middle"},
-        {"from": "q_char_middle", "input": "'", "to": "q_char_lit"}
+        {"from": "q_char_start", "input": "any", "to": "q_char_content"},
+        {"from": "q_char_content", "input": "'", "to": "q_char_lit"}
       ]
     },
     {
-      "comment": "STRING LITERAL - Pattern: 'chars+' (2+ chars between quotes)",
+      "comment": "STRING LITERAL - Pattern: 'chars+' (handles doubled '' escape)",
       "rules": [
-        {"from": "q_char_middle", "input": "any", "to": "q_string_content"},
+        {"from": "q_char_content", "input": "any", "to": "q_string_content"},
         {"from": "q_string_content", "input": "any", "to": "q_string_content"},
         {"from": "q_string_content", "input": "'", "to": "q_string_lit"}
       ]
@@ -92,6 +82,41 @@
       ]
     },
     {
+      "comment": "ARITHMETIC OPERATOR - + - * / div mod",
+      "rules": [
+        {"from": "q0", "input": "+", "to": "q_plus"},
+        {"from": "q0", "input": "-", "to": "q_minus"},
+        {"from": "q0", "input": "*", "to": "q_mul"},
+        {"from": "q0", "input": "/", "to": "q_div"}
+      ]
+    },
+    {
+      "comment": "RELATIONAL OPERATORS - = < > <= >= <>",
+      "rules": [
+        {"from": "q0", "input": "=", "to": "q_eq"},
+        {"from": "q0", "input": "<", "to": "q_lt"},
+        {"from": "q_lt", "input": "=", "to": "q_let"},
+        {"from": "q_lt", "input": ">", "to": "q_ne"},
+        {"from": "q0", "input": ">", "to": "q_gt"},
+        {"from": "q_gt", "input": "=", "to": "q_get"}
+      ]
+    },
+    {
+      "comment": "DELIMITERS AND RANGE - : := . .. ; , ( ) [ ]",
+      "rules": [
+        {"from": "q0", "input": ":", "to": "q_colon"},
+        {"from": "q_colon", "input": "=", "to": "q_assign"},
+        {"from": "q0", "input": ".", "to": "q_dot"},
+        {"from": "q_dot", "input": ".", "to": "q_range"},
+        {"from": "q0", "input": ";", "to": "q_semicolon"},
+        {"from": "q0", "input": ",", "to": "q_comma"},
+        {"from": "q0", "input": "(", "to": "q_lparen"},
+        {"from": "q0", "input": ")", "to": "q_rparen"},
+        {"from": "q0", "input": "[", "to": "q_lbracket"},
+        {"from": "q0", "input": "]", "to": "q_rbracket"}
+      ]
+    },
+    {
       "comment": "WHITESPACE - ignored",
       "rules": [
         {"from": "q0", "input": "space", "to": "q0"},
@@ -100,7 +125,7 @@
       ]
     }
   ],
-  
+
   "state_token_map": {
     "q_identifier": "IDENTIFIER",
     "q_number": "NUMBER",
@@ -108,9 +133,11 @@
     "q_scientific": "NUMBER",
     "q_char_lit": "CHAR_LITERAL",
     "q_string_lit": "STRING_LITERAL",
-    "q_comment": "COMMENT"
+    "q_comment": "COMMENT",
+    "q_plus": "ARITHMETIC_OPERATOR",
+    "q_minus": "ARITHMETIC_OPERATOR"
   },
-  
+
   "single_char_tokens": {
     "+": "ARITHMETIC_OPERATOR",
     "-": "ARITHMETIC_OPERATOR",
@@ -128,16 +155,12 @@
     "[": "LBRACKET",
     "]": "RBRACKET"
   },
-  
+
   "multi_char_tokens": {
     ":=": "ASSIGN_OPERATOR",
     "<>": "RELATIONAL_OPERATOR",
     "<=": "RELATIONAL_OPERATOR",
     ">=": "RELATIONAL_OPERATOR",
     "..": "RANGE_OPERATOR"
-  },
-  
-  "special_cases": {
-    "negative_number_contexts": ["(", "=", "+", "-", "*", "/", ",", ":", ":=", "<", ">", "<=", ">=", "<>"]
   }
 }

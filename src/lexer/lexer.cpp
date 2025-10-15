@@ -132,7 +132,7 @@ vector<Token> runDFA(
             cur += c;
             state = next;
         } else {
-            // No valid transition → check if we ended a token
+            // No valid transition -> check if we ended a token
             if (finals.count(state)) {
                 string tokType = stateToToken[state];
                 if (state == "q_identifier" && keywords.count(cur)) {
@@ -143,7 +143,7 @@ vector<Token> runDFA(
                 state = rules["dfa_config"]["start_state"];
                 --i; // reprocess current char
             } else if (state == "q_minus") {
-                // Minus followed by non-digit → it's a subtraction operator
+                // Minus followed by non-digit -> it's a subtraction operator
                 tokens.push_back({"ARITHMETIC_OPERATOR", "-"});
                 cur.clear();
                 state = rules["dfa_config"]["start_state"];

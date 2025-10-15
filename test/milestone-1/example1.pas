@@ -1,8 +1,8 @@
 program EXAMPLE1;
 var
-    x, y, sum: integer;
+    x, y, sum: real;
 begin
-    x := 5;
+    x := 5.;
     y := 10;
     sum := x + y;
 
