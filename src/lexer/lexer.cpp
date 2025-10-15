@@ -1,4 +1,3 @@
-
 #include "lexer.hpp"
 
 // === Character classification ===
@@ -27,10 +26,9 @@ string classifyChar(char c) {
 vector<Token> runDFA(
     const string &input,
     const json &rules,
-    const unordered_set<string> &keywords,
-    const unordered_map<string,string> &singleCharTokens,
-    const unordered_map<string,string> &multiCharTokens
-) {
+    const unordered_set<string> &keywords
+) 
+{
     // Build transition table
     unordered_map<string, unordered_map<string,string>> transition;
     for (auto &block : rules["transitions"]) {
@@ -47,29 +45,12 @@ vector<Token> runDFA(
     unordered_map<string,string> stateToToken =
         rules["state_token_map"].get<unordered_map<string,string>>();
 
-    // Load special contexts for negative numbers
-    unordered_set<string> negative_contexts;
-    if (rules.contains("special_cases") && rules["special_cases"].contains("negative_number_contexts")) {
-        for (auto &ctx : rules["special_cases"]["negative_number_contexts"]) {
-            negative_contexts.insert(ctx);
-        }
-    }
+   
 
     vector<Token> tokens;
     string state = rules["dfa_config"]["start_state"];
     string cur;
 
-    // Helper function to check if last token is in negative number context
-    auto isNegativeNumberContext = [&]() -> bool {
-        if (tokens.empty()) return true; // Beginning of input
-        string last_type = tokens.back().type;
-        return negative_contexts.count(last_type) || 
-               last_type == "LPARENTHESIS" || 
-               last_type == "COMMA" ||
-               last_type == "ASSIGN_OPERATOR" ||
-               last_type == "RELATIONAL_OPERATOR" ||
-               last_type == "ARITHMETIC_OPERATOR";
-    };
 
     for (size_t i = 0; i <= input.size(); ++i) {
         char c = (i < input.size()) ? input[i] : '\0';
@@ -80,33 +61,21 @@ vector<Token> runDFA(
             continue;
         }
 
-        // Handle single/multi-character tokens only in q0
-        if (state == "q0") {
-            string one(1, c);
+        // SPECIAL CASE: Handle 5..7 pattern (NON DFA)
+      
+        if (state == "q_number_dot" && c == '.' && i < input.size()) {
+            // Emit the number (without the first dot)
+            string numLexeme = cur.substr(0, cur.size() - 1); // Remove trailing '.'
+            tokens.push_back({"NUMBER", numLexeme});
             
-            // Check for multi-char tokens first
-            if (i + 1 < input.size()) {
-                string two = one + input[i + 1];
-                if (multiCharTokens.count(two)) {
-                    tokens.push_back({multiCharTokens.at(two), two});
-                    ++i;
-                    continue;
-                }
-            }
+            // Now process ".." as range operator
+            // Start from q0, read first '.', then second '.'
+            cur = "..";
+            tokens.push_back({"RANGE_OPERATOR", ".."});
             
-            // Handle minus sign specially for negative numbers
-            if (c == '-' && isNegativeNumberContext()) {
-                // This could be start of negative number
-                cur += c;
-                state = "q_minus";
-                continue;
-            }
-            
-            // Other single char tokens
-            if (singleCharTokens.count(one)) {
-                tokens.push_back({singleCharTokens.at(one), one});
-                continue;
-            }
+            cur.clear();
+            state = "q0";
+            continue; // Skip to next character after the second '.'
         }
 
         string next;
@@ -142,13 +111,8 @@ vector<Token> runDFA(
                 cur.clear();
                 state = rules["dfa_config"]["start_state"];
                 --i; // reprocess current char
-            } else if (state == "q_minus") {
-                // Minus followed by non-digit -> it's a subtraction operator
-                tokens.push_back({"ARITHMETIC_OPERATOR", "-"});
-                cur.clear();
-                state = rules["dfa_config"]["start_state"];
-                --i;
-            }
+            } 
+           
         }
     }
 
@@ -160,9 +124,8 @@ vector<Token> runDFA(
                 tokType = "KEYWORD";
             }
             tokens.push_back({tokType, cur});
-        } else if (state == "q_minus") {
-            tokens.push_back({"ARITHMETIC_OPERATOR", "-"});
-        }
+        } 
+       
     }
 
     return tokens;
@@ -190,10 +153,8 @@ int lexer_main(int argc, char* argv[]) {
     for (auto &kw : rules["keyword_lookup"]["logical_operators"]) keywords.insert(kw);
     for (auto &kw : rules["keyword_lookup"]["arithmetic_word_operators"]) keywords.insert(kw);
 
-    unordered_map<string,string> singleCharTokens =
-        rules["single_char_tokens"].get<unordered_map<string,string>>();
-    unordered_map<string,string> multiCharTokens =
-        rules["multi_char_tokens"].get<unordered_map<string,string>>();
+    // // All token definitions are now in DFA rules
+    // // Removed: singleCharTokens and multiCharTokens loading
 
     // Read Pascal source
     ifstream f(argv[1]);
@@ -201,7 +162,7 @@ int lexer_main(int argc, char* argv[]) {
     stringstream buf; buf << f.rdbuf(); string input = buf.str();
 
     // Run DFA using only the rules
-    vector<Token> toks = runDFA(input, rules, keywords, singleCharTokens, multiCharTokens);
+    vector<Token> toks = runDFA(input, rules, keywords);
 
     // Print tokens
     for (auto &t : toks)

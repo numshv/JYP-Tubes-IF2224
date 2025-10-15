@@ -4,49 +4,41 @@
     "final_states": [
       "q_identifier",
       "q_number",
+      "q_number_dot",
       "q_float",
       "q_scientific",
       "q_char_lit",
       "q_string_lit",
       "q_comment",
-      "q_minus",
       "q_plus",
+      "q_minus",
       "q_mul",
       "q_div",
-      "q_mod",
-      "q_and",
-      "q_or",
-      "q_not",
+      "q_eq",
+      "q_lt",
+      "q_gt",
+      "q_ne",
+      "q_let",
+      "q_get",
+      "q_colon",
+      "q_assign",
+      "q_dot",
+      "q_range",
       "q_semicolon",
       "q_comma",
       "q_lparen",
       "q_rparen",
       "q_lbracket",
       "q_rbracket",
-      "q_lt",
-      "q_dot",
-      "q_range",
-      "q_let",
-      "q_gt",
-      "q_get",
-      "q_ne",
-      "q_colon",
-      "q_assignment"
-    ],
-    "intermediate_states": [
-      "q_number_dot",
-      "q_exp",
-      "q_exp_sign",
-      "q_char_start",
-      "q_char_middle",
-      "q_string_content",
-      "q_comment_brace",
-      "q_lparen_or_comment",
-      "q_comment_paren",
-      "q_comment_star"
-    ],
-    "trap_state": "q_trap"
+      "q_unary_plus",
+      "q_unary_minus",
+      "q_signed_number",
+      "q_signed_number_dot",
+      "q_signed_float",
+      "q_signed_scientific"
+    ]
   },
+
   "keyword_lookup": {
     "keywords": [
       "program", "var", "begin", "end", "if", "then", "else",
@@ -57,217 +49,185 @@
     "logical_operators": ["and", "or", "not"],
     "arithmetic_word_operators": ["div", "mod"]
   },
+
   "transitions": [
     {
-      "comment": "WHITESPACE - stays in q0",
-      "rules": [
-        {"from": "q0", "input": "space", "to": "q0"},
-        {"from": "q0", "input": "tab", "to": "q0"},
-        {"from": "q0", "input": "newline", "to": "q0"}
-      ]
-    },
-    {
-      "comment": "IDENTIFIER/KEYWORD - starts with letter",
+      "comment": "IDENTIFIER/KEYWORD - Pattern: letter (letter|digit|_)*",
       "rules": [
         {"from": "q0", "input": "letter", "to": "q_identifier"},
         {"from": "q_identifier", "input": "letter", "to": "q_identifier"},
         {"from": "q_identifier", "input": "digit", "to": "q_identifier"},
-        {"from": "q_identifier", "input": "_", "to": "q_identifier"},
-        {"from": "q_identifier", "input": "other", "to": "q_trap"}
+        {"from": "q_identifier", "input": "_", "to": "q_identifier"}
       ]
     },
     {
-      "comment": "NUMBER - integer part",
+      "comment": "NUMBER - Handles 5, 5., 5.7, +5, -5, +5.7, -5.7 patterns",
       "rules": [
         {"from": "q0", "input": "digit", "to": "q_number"},
-        {"from": "q_number", "input": "digit", "to": "q_number"}
-      ]
-    },
-    {
-      "comment": "FLOAT - decimal numbers",
-      "rules": [
+        {"from": "q_number", "input": "digit", "to": "q_number"},
         {"from": "q_number", "input": ".", "to": "q_number_dot"},
         {"from": "q_number_dot", "input": "digit", "to": "q_float"},
-        {"from": "q_number_dot", "input": ".", "to": "q_range"},
-        {"from": "q_number_dot", "input": "other", "to": "q_trap"},
         {"from": "q_float", "input": "digit", "to": "q_float"},
-        {"from": "q_float", "input": ".", "to": "q_number_dot"}
-      ]
-    },
-    {
-      "comment": "SCIENTIFIC NOTATION - exponent part",
-      "rules": [
+        {"from": "q_number_dot", "input": ".", "to": "q_range"},
         {"from": "q_number", "input": "e", "to": "q_exp"},
         {"from": "q_number", "input": "E", "to": "q_exp"},
-        {"from": "q_float", "input": "e", "to": "q_exp"},
         {"from": "q_float", "input": "E", "to": "q_exp"},
-        {"from": "q_exp", "input": "+", "to": "q_exp_sign"},
+        {"from": "q_float", "input": "e", "to": "q_exp"},
         {"from": "q_exp", "input": "-", "to": "q_exp_sign"},
+        {"from": "q_exp", "input": "+", "to": "q_exp_sign"},
         {"from": "q_exp", "input": "digit", "to": "q_scientific"},
         {"from": "q_exp_sign", "input": "digit", "to": "q_scientific"},
         {"from": "q_scientific", "input": "digit", "to": "q_scientific"},
-        {"from": "q_scientific", "input": "other", "to": "q_trap"}
+        
+        {"from": "q0", "input": "+", "to": "q_unary_plus"},
+        {"from": "q0", "input": "-", "to": "q_unary_minus"},
+        {"from": "q_unary_plus", "input": "digit", "to": "q_signed_number"},
+        {"from": "q_unary_minus", "input": "digit", "to": "q_signed_number"},
+        {"from": "q_signed_number", "input": "digit", "to": "q_signed_number"},
+        {"from": "q_signed_number", "input": ".", "to": "q_signed_number_dot"},
+        {"from": "q_signed_number_dot", "input": "digit", "to": "q_signed_float"},
+        {"from": "q_signed_float", "input": "digit", "to": "q_signed_float"},
+        
+
+        {"from": "q_signed_number", "input": "e", "to": "q_signed_exp"},
+        {"from": "q_signed_number", "input": "E", "to": "q_signed_exp"},
+        {"from": "q_signed_float", "input": "E", "to": "q_signed_exp"},
+        {"from": "q_signed_float", "input": "e", "to": "q_signed_exp"},
+        {"from": "q_signed_exp", "input": "+", "to": "q_signed_exp_sign"},
+        {"from": "q_signed_exp", "input": "-", "to": "q_signed_exp_sign"},
+        {"from": "q_signed_exp", "input": "digit", "to": "q_signed_scientific"},
+        {"from": "q_signed_exp_sign", "input": "digit", "to": "q_signed_scientific"},
+        {"from": "q_signed_scientific", "input": "digit", "to": "q_signed_scientific"}
+        
       ]
     },
     {
-      "comment": "SIGNED NUMBERS - plus and minus",
-      "rules": [
-        {"from": "q0", "input": "+", "to": "q_plus"},
-        {"from": "q0", "input": "-", "to": "q_minus"},
-        {"from": "q_plus", "input": "digit", "to": "q_number"},
-        {"from": "q_minus", "input": "digit", "to": "q_number"}
-      ]
-    },
-    {
-      "comment": "CHARACTER LITERAL - single quoted char",
+      "comment": "CHARACTER LITERAL - Pattern: 'c' (single char inside quotes)",
       "rules": [
         {"from": "q0", "input": "'", "to": "q_char_start"},
-        {"from": "q_char_start", "input": "any", "to": "q_char_middle"},
-        {"from": "q_char_middle", "input": "'", "to": "q_char_lit"}
+        {"from": "q_char_start", "input": "any", "to": "q_char_content"},
+        {"from": "q_char_content", "input": "'", "to": "q_char_lit"}
       ]
     },
     {
-      "comment": "STRING LITERAL - multiple chars in quotes",
+      "comment": "STRING LITERAL - Pattern: 'chars+' (handles doubled '' escape)",
       "rules": [
-        {"from": "q_char_middle", "input": "any_except_quote", "to": "q_string_content"},
+        {"from": "q_char_content", "input": "any", "to": "q_string_content"},
         {"from": "q_string_content", "input": "any", "to": "q_string_content"},
         {"from": "q_string_content", "input": "'", "to": "q_string_lit"}
+
       ]
     },
     {
-      "comment": "COMMENT - brace style {...}",
+      "comment": "COMMENT - Pattern: {...} or (*...*)",
       "rules": [
         {"from": "q0", "input": "{", "to": "q_comment_brace"},
         {"from": "q_comment_brace", "input": "any", "to": "q_comment_brace"},
-        {"from": "q_comment_brace", "input": "}", "to": "q_comment"}
-      ]
-    },
-    {
-      "comment": "COMMENT - parenthesis style (*...*)",
-      "rules": [
+        {"from": "q_comment_brace", "input": "}", "to": "q_comment"},
         {"from": "q0", "input": "(", "to": "q_lparen_or_comment"},
         {"from": "q_lparen_or_comment", "input": "*", "to": "q_comment_paren"},
         {"from": "q_comment_paren", "input": "any", "to": "q_comment_paren"},
         {"from": "q_comment_paren", "input": "*", "to": "q_comment_star"},
         {"from": "q_comment_star", "input": ")", "to": "q_comment"},
-        {"from": "q_comment_star", "input": "any_not_rparen", "to": "q_comment_paren"}
+        {"from": "q_comment_star", "input": "any", "to": "q_comment_paren"}
       ]
     },
     {
-      "comment": "COLON and ASSIGNMENT",
+      "comment": "ARITHMETIC OPERATOR - + - * / div mod (binary operators)",
       "rules": [
-        {"from": "q0", "input": ":", "to": "q_colon"},
-        {"from": "q_colon", "input": "=", "to": "q_assignment"}
-      ]
-    },
-    {
-      "comment": "LESS THAN and related operators",
-      "rules": [
-        {"from": "q0", "input": "<", "to": "q_lt"},
-        {"from": "q_lt", "input": "=", "to": "q_let"},
-        {"from": "q_lt", "input": ">", "to": "q_ne"}
-      ]
-    },
-    {
-      "comment": "GREATER THAN and related operators",
-      "rules": [
-        {"from": "q0", "input": ">", "to": "q_gt"},
-        {"from": "q_gt", "input": "=", "to": "q_get"}
-      ]
-    },
-    {
-      "comment": "DOT and RANGE operator",
-      "rules": [
-        {"from": "q0", "input": ".", "to": "q_dot"},
-        {"from": "q_dot", "input": ".", "to": "q_range"}
-      ]
-    },
-    {
-      "comment": "ARITHMETIC OPERATORS - single char",
-      "rules": [
+        {"from": "q_identifier", "input": "+", "to": "q_plus"},
+        {"from": "q_identifier", "input": "-", "to": "q_minus"},
+        {"from": "q_number", "input": "+", "to": "q_plus"},
+        {"from": "q_number", "input": "-", "to": "q_minus"},
+        {"from": "q_number_dot", "input": "+", "to": "q_plus"},
+        {"from": "q_number_dot", "input": "-", "to": "q_minus"},
+        {"from": "q_float", "input": "+", "to": "q_plus"},
+        {"from": "q_float", "input": "-", "to": "q_minus"},
+        {"from": "q_scientific", "input": "+", "to": "q_plus"},
+        {"from": "q_scientific", "input": "-", "to": "q_minus"},
+        {"from": "q_char_lit", "input": "+", "to": "q_plus"},
+        {"from": "q_char_lit", "input": "-", "to": "q_minus"},
+        {"from": "q_string_lit", "input": "+", "to": "q_plus"},
+        {"from": "q_string_lit", "input": "-", "to": "q_minus"},
+        {"from": "q_rparen", "input": "+", "to": "q_plus"},
+        {"from": "q_rparen", "input": "-", "to": "q_minus"},
+        {"from": "q_rbracket", "input": "+", "to": "q_plus"},
+        {"from": "q_rbracket", "input": "-", "to": "q_minus"},
+        
         {"from": "q0", "input": "*", "to": "q_mul"},
         {"from": "q0", "input": "/", "to": "q_div"}
       ]
     },
     {
-      "comment": "ARITHMETIC WORD OPERATORS - requires identifier recognition",
+      "comment": "RELATIONAL OPERATORS - = < > <= >= <>",
       "rules": [
-        {"from": "q0", "input": "mod_keyword", "to": "q_mod"}
+        {"from": "q0", "input": "=", "to": "q_eq"},
+        {"from": "q0", "input": "<", "to": "q_lt"},
+        {"from": "q_lt", "input": "=", "to": "q_let"},
+        {"from": "q_lt", "input": ">", "to": "q_ne"},
+        {"from": "q0", "input": ">", "to": "q_gt"},
+        {"from": "q_gt", "input": "=", "to": "q_get"}
       ]
     },
     {
-      "comment": "LOGICAL OPERATORS - requires identifier recognition",
+      "comment": "DELIMITERS AND RANGE - : := . .. ; , ( ) [ ]",
       "rules": [
-        {"from": "q0", "input": "and_keyword", "to": "q_and"},
-        {"from": "q0", "input": "or_keyword", "to": "q_or"},
-        {"from": "q0", "input": "not_keyword", "to": "q_not"}
-      ]
-    },
-    {
-      "comment": "DELIMITERS - semicolon and comma",
-      "rules": [
+        {"from": "q0", "input": ":", "to": "q_colon"},
+        {"from": "q_colon", "input": "=", "to": "q_assign"},
+        {"from": "q0", "input": ".", "to": "q_dot"},
+        {"from": "q_dot", "input": ".", "to": "q_range"},
         {"from": "q0", "input": ";", "to": "q_semicolon"},
-        {"from": "q0", "input": ",", "to": "q_comma"}
-      ]
-    },
-    {
-      "comment": "PARENTHESES - note: '(' handled in comment section",
-      "rules": [
-        {"from": "q0", "input": ")", "to": "q_rparen"}
-      ]
-    },
-    {
-      "comment": "BRACKETS",
-      "rules": [
+        {"from": "q0", "input": ",", "to": "q_comma"},
+        {"from": "q0", "input": "(", "to": "q_lparen"},
+        {"from": "q0", "input": ")", "to": "q_rparen"},
         {"from": "q0", "input": "[", "to": "q_lbracket"},
         {"from": "q0", "input": "]", "to": "q_rbracket"}
       ]
     },
     {
-      "comment": "TRAP STATE - error handling",
+      "comment": "WHITESPACE - ignored",
       "rules": [
-        {"from": "q0", "input": "other", "to": "q_trap"},
-        {"from": "q_trap", "input": "any", "to": "q_trap"}
+        {"from": "q0", "input": "space", "to": "q0"},
+        {"from": "q0", "input": "tab", "to": "q0"},
+        {"from": "q0", "input": "newline", "to": "q0"}
       ]
     }
   ],
+
   "state_token_map": {
     "q_identifier": "IDENTIFIER",
     "q_number": "NUMBER",
+    "q_number_dot": "NUMBER",
     "q_float": "NUMBER",
     "q_scientific": "NUMBER",
+    "q_signed_number": "NUMBER",
+    "q_signed_number_dot": "NUMBER",
+    "q_signed_float": "NUMBER",
+    "q_signed_scientific": "NUMBER",
     "q_char_lit": "CHAR_LITERAL",
     "q_string_lit": "STRING_LITERAL",
     "q_comment": "COMMENT",
-    "q_plus": "PLUS",
-    "q_minus": "MINUS",
-    "q_mul": "MULTIPLY",
-    "q_div": "DIVIDE",
-    "q_mod": "MODULO",
-    "q_and": "AND",
-    "q_or": "OR",
-    "q_not": "NOT",
+    "q_plus": "ARITHMETIC_OPERATOR",
+    "q_minus": "ARITHMETIC_OPERATOR",
+    "q_mul": "ARITHMETIC_OPERATOR",
+    "q_div": "ARITHMETIC_OPERATOR",
+    "q_unary_plus": "ARITHMETIC_OPERATOR",
+    "q_unary_minus": "ARITHMETIC_OPERATOR",
+    "q_eq": "RELATIONAL_OPERATOR",
+    "q_lt": "RELATIONAL_OPERATOR",
+    "q_gt": "RELATIONAL_OPERATOR",
+    "q_ne": "RELATIONAL_OPERATOR",
+    "q_let": "RELATIONAL_OPERATOR",
+    "q_get": "RELATIONAL_OPERATOR",
+    "q_colon": "COLON",
+    "q_assign": "ASSIGN_OPERATOR",
+    "q_dot": "DOT",
+    "q_range": "RANGE_OPERATOR",
     "q_semicolon": "SEMICOLON",
     "q_comma": "COMMA",
-    "q_lparen": "LEFT_PAREN",
-    "q_rparen": "RIGHT_PAREN",
-    "q_lbracket": "LEFT_BRACKET",
-    "q_rbracket": "RIGHT_BRACKET",
-    "q_lt": "LESS_THAN",
-    "q_dot": "DOT",
-    "q_range": "RANGE",
-    "q_let": "LESS_OR_EQUAL",
-    "q_gt": "GREATER_THAN",
-    "q_get": "GREATER_OR_EQUAL",
-    "q_ne": "NOT_EQUAL",
-    "q_colon": "COLON",
-    "q_assignment": "ASSIGNMENT"
-  },
-  "implementation_notes": {
-    "lparen_handling": "The '(' character has dual purpose: it can be LEFT_PAREN or start of comment. The DFA uses q_lparen_or_comment to handle this. If followed by '*', it becomes a comment; otherwise, it should be recognized as LEFT_PAREN (q_lparen).",
-    "keyword_recognition": "Keywords like 'and', 'or', 'not', 'mod', 'div' are recognized as identifiers first (q_identifier), then checked against keyword_lookup to determine final token type.",
-    "string_vs_char": "The DFA distinguishes between character literals ('a') and string literals ('abc') by checking if there's content after the first character before the closing quote.",
-    "range_operator": "The '..' operator is recognized by first going to q_dot, then to q_range on second dot. This prevents conflict with floating point numbers like '3.14'.",
-    "number_dot_ambiguity": "After a number followed by dot (q_number_dot), the next character determines: another dot → range operator, digit → float, other → error."
+    "q_lparen": "LPARENTHESIS",
+    "q_rparen": "RPARENTHESIS",
+    "q_lbracket": "LBRACKET",
+    "q_rbracket": "RBRACKET"
   }
 }
