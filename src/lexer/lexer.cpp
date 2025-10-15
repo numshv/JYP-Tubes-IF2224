@@ -1,12 +1,5 @@
-#include <bits/stdc++.h>
-#include "nlohmann/json.hpp"
-using json = nlohmann::json;
-using namespace std;
 
-struct Token {
-    string type;
-    string lexeme;
-};
+#include "lexer.hpp"
 
 // === Character classification ===
 string classifyChar(char c) {
@@ -175,14 +168,14 @@ vector<Token> runDFA(
     return tokens;
 }
 
-int main(int argc, char* argv[]) {
+int lexer_main(int argc, char* argv[]) {
     if (argc < 2) {
         cerr << "Usage: " << argv[0] << " <source_file.pas>\n";
         return 1;
     }
 
     // Load rule.json
-    const string ruleFile = "rule.json";
+    const string ruleFile = "test/milestone-1/rule.json";
     ifstream jfile(ruleFile);
     if (!jfile) {
         cerr << "Error: cannot open " << ruleFile << "\n";
