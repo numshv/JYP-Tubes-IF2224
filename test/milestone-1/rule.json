@@ -126,6 +126,7 @@
         {"from": "q_comment_brace", "input": "}", "to": "q_comment"},
         {"from": "q0", "input": "(", "to": "q_lparen_or_comment"},
         {"from": "q_lparen_or_comment", "input": "*", "to": "q_comment_paren"},
+        {"from": "q_lparen_or_comment", "input": "other", "to": "q_lparen"},
         {"from": "q_comment_paren", "input": "any", "to": "q_comment_paren"},
         {"from": "q_comment_paren", "input": "*", "to": "q_comment_star"},
         {"from": "q_comment_star", "input": ")", "to": "q_comment"},
@@ -178,7 +179,6 @@
         {"from": "q_dot", "input": ".", "to": "q_range"},
         {"from": "q0", "input": ";", "to": "q_semicolon"},
         {"from": "q0", "input": ",", "to": "q_comma"},
-        {"from": "q0", "input": "(", "to": "q_lparen"},
         {"from": "q0", "input": ")", "to": "q_rparen"},
         {"from": "q0", "input": "[", "to": "q_lbracket"},
         {"from": "q0", "input": "]", "to": "q_rbracket"}
