@@ -1,36 +1,44 @@
 #include "lexer.hpp"
 
-// === Character classification ===
-string classifyChar(char c) {
-    if (isalpha(c)) return "letter";
-    if (isdigit(c)) return "digit";
-    if (c == '_') return "_";
-    if (c == '.') return ".";
-    if (c == '\'') return "'";
-    if (c == '{') return "{";
-    if (c == '}') return "}";
-    if (c == '(') return "(";
-    if (c == ')') return ")";
-    if (c == '*') return "*";
-    if (c == ' ') return "space";
-    if (c == '\t') return "tab";
-    if (c == '\n') return "newline";
-    if (c == '+') return "+";
-    if (c == '-') return "-";
-    if (c == 'e') return "e";
-    if (c == 'E') return "E";
-
-    if (c == '@') return "@";
-    if (c == '$') return "$";
-    if (c == '~') return "~";
-    if (c == '`') return "`";
-    if (c == '#') return "#";
-    if (c == '\\') return "\\";
-    if (c == '|') return "|";
-    if (c == '^') return "^";
-    if (c == '?') return "?";
-    if (c == '!') return "!";
+// === Character classification from JSON ===
+unordered_map<char, string> buildCharMap(const json &charClasses) {
+    unordered_map<char, string> charMap;
     
+    for (auto &cls : charClasses.items()) {
+        string className = cls.key();
+        string chars = cls.value();
+        
+        for (char c : chars) {
+            if (c == '\\' && chars.length() > 1) {
+                // Handle escape sequences
+                size_t pos = chars.find(c);
+                if (pos != string::npos && pos + 1 < chars.length()) {
+                    char escaped = chars[pos + 1];
+                    switch (escaped) {
+                        case 'n': charMap['\n'] = className; break;
+                        case 't': charMap['\t'] = className; break;
+                        case 'r': charMap['\r'] = className; break;
+                        case '\\': charMap['\\'] = className; break;
+                        case '\'': charMap['\''] = className; break;
+                        default: charMap[escaped] = className; break;
+                    }
+                    chars = chars.substr(pos + 2); 
+                    continue;
+                }
+            }
+            charMap[c] = className;
+        }
+    }
+    
+    charMap['\0'] = "eof";
+    return charMap;
+}
+
+string classifyChar(char c, const unordered_map<char, string> &charMap) {
+    auto it = charMap.find(c);
+    if (it != charMap.end()) {
+        return it->second;
+    }
     return "any";
 }
 
@@ -41,6 +49,9 @@ vector<Token> runDFA(
     const unordered_set<string> &keywords
 ) 
 {
+    // Build character classification map
+    auto charMap = buildCharMap(rules["character_classes"]);
+    
     // Build transition table
     unordered_map<string, unordered_map<string,string>> transition;
     for (auto &block : rules["transitions"]) {
@@ -57,24 +68,19 @@ vector<Token> runDFA(
     unordered_map<string,string> stateToToken =
         rules["state_token_map"].get<unordered_map<string,string>>();
 
-   
-
     vector<Token> tokens;
     string state = rules["dfa_config"]["start_state"];
     string cur;
 
-
     for (size_t i = 0; i <= input.size(); ++i) {
         char c = (i < input.size()) ? input[i] : '\0';
-        string cls = classifyChar(c);
+        string cls = classifyChar(c, charMap);
 
-        // Handle whitespace in q0 only
         if (state == "q0" && (cls == "space" || cls == "tab" || cls == "newline")) {
             continue;
         }
 
         // SPECIAL CASE: Handle 5..7 pattern (NON DFA)
-      
         if (state == "q_number_dot" && c == '.' && i < input.size()) {
             // Emit the number (without the first dot)
             string numLexeme = cur.substr(0, cur.size() - 1); // Remove trailing '.'
@@ -109,25 +115,6 @@ vector<Token> runDFA(
             transition_found = true;
         }
 
-        // Handle "other" = any except a specific character (NON DFA)
-        else if (transition[state].count("other")) {
-            if (state == "q_lparen_or_comment" && c != '*') {
-                // Treat it as a normal '(' token
-                string tokType = "LPARENTHESIS";
-                tokens.push_back({tokType, "("});
-                
-                // Reset DFA to start state and reprocess this char
-                state = rules["dfa_config"]["start_state"];
-                cur.clear();
-                --i;
-                continue;
-            } else {
-                next = transition[state]["other"];
-                transition_found = true;
-            }
-        }
-
-
         if (transition_found) {
             cur += c;
             state = next;
@@ -141,13 +128,12 @@ vector<Token> runDFA(
                 tokens.push_back({tokType, cur});
                 cur.clear();
                 state = rules["dfa_config"]["start_state"];
-                --i; // reprocess current char
+                --i; 
             } 
            
         }
     }
 
-    // Handle any remaining buffer at end of input
     if (!cur.empty()) {
         if (finals.count(state)) {
             string tokType = stateToToken[state];
@@ -168,7 +154,6 @@ int lexer_main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Load rule.json
     const string ruleFile = "test/milestone-1/rule.json";
     ifstream jfile(ruleFile);
     if (!jfile) {
@@ -184,15 +169,12 @@ int lexer_main(int argc, char* argv[]) {
     for (auto &kw : rules["keyword_lookup"]["logical_operators"]) keywords.insert(kw);
     for (auto &kw : rules["keyword_lookup"]["arithmetic_word_operators"]) keywords.insert(kw);
 
-    // // All token definitions are now in DFA rules
-    // // Removed: singleCharTokens and multiCharTokens loading
-
-    // Read Pascal source
+    // Read Pascal 
     ifstream f(argv[1]);
     if (!f) { cerr << "Cannot open file\n"; return 1; }
     stringstream buf; buf << f.rdbuf(); string input = buf.str();
 
-    // Run DFA using only the rules
+    // Run DFA
     vector<Token> toks = runDFA(input, rules, keywords);
 
     // Print tokens
