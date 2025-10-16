@@ -35,7 +35,8 @@
       "q_signed_number",
       "q_signed_number_dot",
       "q_signed_float",
-      "q_signed_scientific"
+      "q_signed_scientific",
+      "q_error"
     ]
   },
 
@@ -51,6 +52,21 @@
   },
 
   "transitions": [
+    {
+      "comment": "ERROR HANDLING - Invalid characters like @, $, etc.",
+      "rules": [
+        {"from": "q0", "input": "@", "to": "q_error"},
+        {"from": "q0", "input": "$", "to": "q_error"},
+        {"from": "q0", "input": "~", "to": "q_error"},
+        {"from": "q0", "input": "`", "to": "q_error"},
+        {"from": "q0", "input": "#", "to": "q_error"},
+        {"from": "q0", "input": "\\", "to": "q_error"},
+        {"from": "q0", "input": "|", "to": "q_error"},
+        {"from": "q0", "input": "^", "to": "q_error"},
+        {"from": "q0", "input": "?", "to": "q_error"},
+        {"from": "q0", "input": "!", "to": "q_error"}
+      ]
+    },
     {
       "comment": "IDENTIFIER/KEYWORD - Pattern: letter (letter|digit|_)*",
       "rules": [
@@ -228,6 +244,7 @@
     "q_lparen": "LPARENTHESIS",
     "q_rparen": "RPARENTHESIS",
     "q_lbracket": "LBRACKET",
-    "q_rbracket": "RBRACKET"
+    "q_rbracket": "RBRACKET",
+    "q_error": "ERROR"
   }
 }

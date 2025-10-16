@@ -19,6 +19,18 @@ string classifyChar(char c) {
     if (c == '-') return "-";
     if (c == 'e') return "e";
     if (c == 'E') return "E";
+
+    if (c == '@') return "@";
+    if (c == '$') return "$";
+    if (c == '~') return "~";
+    if (c == '`') return "`";
+    if (c == '#') return "#";
+    if (c == '\\') return "\\";
+    if (c == '|') return "|";
+    if (c == '^') return "^";
+    if (c == '?') return "?";
+    if (c == '!') return "!";
+    
     return "any";
 }
 
