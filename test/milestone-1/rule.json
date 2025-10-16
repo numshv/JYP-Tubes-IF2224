@@ -44,7 +44,7 @@
       "program", "var", "begin", "end", "if", "then", "else",
       "while", "do", "for", "to", "downto", "integer", "real",
       "boolean", "char", "array", "of", "procedure", "function",
-      "const", "type"
+      "const", "type", "true", "false"
     ],
     "logical_operators": ["and", "or", "not"],
     "arithmetic_word_operators": ["div", "mod"]
