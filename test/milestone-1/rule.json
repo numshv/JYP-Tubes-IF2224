@@ -43,8 +43,6 @@
     "final_states": [
       "q_identifier",
       "q_number",
-      "q_number_dot",
-      "q_float",
       "q_scientific",
       "q_char_lit",
       "q_string_lit",
@@ -62,7 +60,6 @@
       "q_colon",
       "q_assign",
       "q_dot",
-      "q_range",
       "q_semicolon",
       "q_comma",
       "q_lparen",
@@ -110,18 +107,12 @@
       ]
     },
     {
-      "comment": "NUMBER - Handles 5, 5., 5.7, 2e3, 2e-3, 2e+3 patterns",
+      "comment": "NUMBER - Handles integers and scientific notation (2e3, 2e-3, 2e+3)",
       "rules": [
         {"from": "q0", "input": "digit", "to": "q_number"},
         {"from": "q_number", "input": "digit", "to": "q_number"},
-        {"from": "q_number", "input": ".", "to": "q_number_dot"},
-        {"from": "q_number_dot", "input": "digit", "to": "q_float"},
-        {"from": "q_float", "input": "digit", "to": "q_float"},
-        {"from": "q_number_dot", "input": ".", "to": "q_range"},
         {"from": "q_number", "input": "e", "to": "q_exp"},
         {"from": "q_number", "input": "E", "to": "q_exp"},
-        {"from": "q_float", "input": "E", "to": "q_exp"},
-        {"from": "q_float", "input": "e", "to": "q_exp"},
         {"from": "q_exp", "input": "-", "to": "q_exp_sign"},
         {"from": "q_exp", "input": "+", "to": "q_exp_sign"},
         {"from": "q_exp", "input": "digit", "to": "q_scientific"},
@@ -173,12 +164,11 @@
       ]
     },
     {
-      "comment": "DELIMITERS AND RANGE - : := . .. ; , ( ) [ ]",
+      "comment": "DELIMITERS - : := . ; , ( ) [ ]",
       "rules": [
         {"from": "q0", "input": ":", "to": "q_colon"},
         {"from": "q_colon", "input": "=", "to": "q_assign"},
         {"from": "q0", "input": ".", "to": "q_dot"},
-        {"from": "q_dot", "input": ".", "to": "q_range"},
         {"from": "q0", "input": ";", "to": "q_semicolon"},
         {"from": "q0", "input": ",", "to": "q_comma"},
         {"from": "q0", "input": ")", "to": "q_rparen"},
@@ -192,8 +182,6 @@
   "state_token_map": {
     "q_identifier": "IDENTIFIER",
     "q_number": "NUMBER",
-    "q_number_dot": "NUMBER",
-    "q_float": "NUMBER",
     "q_scientific": "NUMBER",
     "q_char_lit": "CHAR_LITERAL",
     "q_string_lit": "STRING_LITERAL",
@@ -210,7 +198,6 @@
     "q_colon": "COLON",
     "q_assign": "ASSIGN_OPERATOR",
     "q_dot": "DOT",
-    "q_range": "RANGE_OPERATOR",
     "q_semicolon": "SEMICOLON",
     "q_comma": "COMMA",
     "q_lparen": "LPARENTHESIS",

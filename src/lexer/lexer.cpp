@@ -80,22 +80,6 @@ vector<Token> runDFA(
             continue;
         }
 
-        // SPECIAL CASE: Handle 5..7 pattern (NON DFA)
-        if (state == "q_number_dot" && c == '.' && i < input.size()) {
-            // Emit the number (without the first dot)
-            string numLexeme = cur.substr(0, cur.size() - 1); // Remove trailing '.'
-            tokens.push_back({"NUMBER", numLexeme});
-            
-            // Now process ".." as range operator
-            // Start from q0, read first '.', then second '.'
-            cur = "..";
-            tokens.push_back({"RANGE_OPERATOR", ".."});
-            
-            cur.clear();
-            state = "q0";
-            continue; // Skip to next character after the second '.'
-        }
-
         string next;
         bool transition_found = false;
 
