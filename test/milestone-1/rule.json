@@ -69,12 +69,6 @@
       "q_rparen",
       "q_lbracket",
       "q_rbracket",
-      "q_unary_plus",
-      "q_unary_minus",
-      "q_signed_number",
-      "q_signed_number_dot",
-      "q_signed_float",
-      "q_signed_scientific",
       "q_error"
     ]
   },
@@ -116,7 +110,7 @@
       ]
     },
     {
-      "comment": "NUMBER - Handles 5, 5., 5.7, +5, -5, +5.7, -5.7 patterns",
+      "comment": "NUMBER - Handles 5, 5., 5.7, 2e3, 2e-3, 2e+3 patterns",
       "rules": [
         {"from": "q0", "input": "digit", "to": "q_number"},
         {"from": "q_number", "input": "digit", "to": "q_number"},
@@ -132,27 +126,7 @@
         {"from": "q_exp", "input": "+", "to": "q_exp_sign"},
         {"from": "q_exp", "input": "digit", "to": "q_scientific"},
         {"from": "q_exp_sign", "input": "digit", "to": "q_scientific"},
-        {"from": "q_scientific", "input": "digit", "to": "q_scientific"},
-        
-        {"from": "q0", "input": "+", "to": "q_unary_plus"},
-        {"from": "q0", "input": "-", "to": "q_unary_minus"},
-        {"from": "q_unary_plus", "input": "digit", "to": "q_signed_number"},
-        {"from": "q_unary_minus", "input": "digit", "to": "q_signed_number"},
-        {"from": "q_signed_number", "input": "digit", "to": "q_signed_number"},
-        {"from": "q_signed_number", "input": ".", "to": "q_signed_number_dot"},
-        {"from": "q_signed_number_dot", "input": "digit", "to": "q_signed_float"},
-        {"from": "q_signed_float", "input": "digit", "to": "q_signed_float"},
-        
-        {"from": "q_signed_number", "input": "e", "to": "q_signed_exp"},
-        {"from": "q_signed_number", "input": "E", "to": "q_signed_exp"},
-        {"from": "q_signed_float", "input": "E", "to": "q_signed_exp"},
-        {"from": "q_signed_float", "input": "e", "to": "q_signed_exp"},
-        {"from": "q_signed_exp", "input": "+", "to": "q_signed_exp_sign"},
-        {"from": "q_signed_exp", "input": "-", "to": "q_signed_exp_sign"},
-        {"from": "q_signed_exp", "input": "digit", "to": "q_signed_scientific"},
-        {"from": "q_signed_exp_sign", "input": "digit", "to": "q_signed_scientific"},
-        {"from": "q_signed_scientific", "input": "digit", "to": "q_signed_scientific"}
-        
+        {"from": "q_scientific", "input": "digit", "to": "q_scientific"}
       ]
     },
     {
@@ -174,27 +148,17 @@
     {
       "comment": "ARITHMETIC OPERATOR - + - * / div mod (binary operators)",
       "rules": [
-        {"from": "q_identifier", "input": "+", "to": "q_plus"},
-        {"from": "q_identifier", "input": "-", "to": "q_minus"},
-        {"from": "q_number", "input": "+", "to": "q_plus"},
-        {"from": "q_number", "input": "-", "to": "q_minus"},
-        {"from": "q_number_dot", "input": "+", "to": "q_plus"},
-        {"from": "q_number_dot", "input": "-", "to": "q_minus"},
-        {"from": "q_float", "input": "+", "to": "q_plus"},
-        {"from": "q_float", "input": "-", "to": "q_minus"},
+        {"from": "q0", "input": "+", "to": "q_plus"},
+        {"from": "q0", "input": "-", "to": "q_minus"},
+        {"from": "q0", "input": "*", "to": "q_mul"},
+        {"from": "q0", "input": "/", "to": "q_div"},
+        
         {"from": "q_scientific", "input": "+", "to": "q_plus"},
         {"from": "q_scientific", "input": "-", "to": "q_minus"},
         {"from": "q_char_lit", "input": "+", "to": "q_plus"},
         {"from": "q_char_lit", "input": "-", "to": "q_minus"},
         {"from": "q_string_lit", "input": "+", "to": "q_plus"},
-        {"from": "q_string_lit", "input": "-", "to": "q_minus"},
-        {"from": "q_rparen", "input": "+", "to": "q_plus"},
-        {"from": "q_rparen", "input": "-", "to": "q_minus"},
-        {"from": "q_rbracket", "input": "+", "to": "q_plus"},
-        {"from": "q_rbracket", "input": "-", "to": "q_minus"},
-        
-        {"from": "q0", "input": "*", "to": "q_mul"},
-        {"from": "q0", "input": "/", "to": "q_div"}
+        {"from": "q_string_lit", "input": "-", "to": "q_minus"}
       ]
     },
     {
@@ -231,18 +195,12 @@
     "q_number_dot": "NUMBER",
     "q_float": "NUMBER",
     "q_scientific": "NUMBER",
-    "q_signed_number": "NUMBER",
-    "q_signed_number_dot": "NUMBER",
-    "q_signed_float": "NUMBER",
-    "q_signed_scientific": "NUMBER",
     "q_char_lit": "CHAR_LITERAL",
     "q_string_lit": "STRING_LITERAL",
     "q_plus": "ARITHMETIC_OPERATOR",
     "q_minus": "ARITHMETIC_OPERATOR",
     "q_mul": "ARITHMETIC_OPERATOR",
     "q_div": "ARITHMETIC_OPERATOR",
-    "q_unary_plus": "ARITHMETIC_OPERATOR",
-    "q_unary_minus": "ARITHMETIC_OPERATOR",
     "q_eq": "RELATIONAL_OPERATOR",
     "q_lt": "RELATIONAL_OPERATOR",
     "q_gt": "RELATIONAL_OPERATOR",
