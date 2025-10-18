@@ -91,7 +91,7 @@ Secara umum, berikut adalah proses yang terjadi dalam lexer:
 4. Membaca source code Pascal-S karakter per karakter
 5. Melakukan state transition berdasarkan input
 6. Mengenali dan menghasilkan token saat mencapai final state
-7. Mendeteksi error jika tidak ada transisi valid
+7. Mendeteksi error jika tidak ada transisi invalid
 
 
 #### Pembagian Tugas
