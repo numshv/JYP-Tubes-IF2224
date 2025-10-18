@@ -1,6 +1,5 @@
 #include "lexer.hpp"
 
-// === Character classification from JSON ===
 unordered_map<char, string> buildCharMap(const json &charClasses) {
     unordered_map<char, string> charMap;
     
@@ -10,7 +9,6 @@ unordered_map<char, string> buildCharMap(const json &charClasses) {
         
         for (char c : chars) {
             if (c == '\\' && chars.length() > 1) {
-                // Handle escape sequences
                 size_t pos = chars.find(c);
                 if (pos != string::npos && pos + 1 < chars.length()) {
                     char escaped = chars[pos + 1];
@@ -42,7 +40,6 @@ string classifyChar(char c, const unordered_map<char, string> &charMap) {
     return "any";
 }
 
-// === Generic DFA Engine ===
 vector<Token> runDFA(
     const string &input,
     const json &rules,
@@ -109,12 +106,24 @@ vector<Token> runDFA(
                 if (state == "q_identifier" && keywords.count(cur)) {
                     tokType = "KEYWORD";
                 }
+                
+                if (tokType == "ERROR" || state == "q_error") {
+                    tokens.push_back({tokType, cur});
+                    cerr << "Lexical Error: Invalid token '" << cur << "' at position " 
+                         << (i - cur.length() + 1) << endl;
+                    return tokens;
+                }
+                
                 tokens.push_back({tokType, cur});
                 cur.clear();
                 state = rules["dfa_config"]["start_state"];
                 --i; 
-            } 
-           
+            } else if (!cur.empty()) {
+                cerr << "Lexical Error: Invalid token '" << cur << "' at position " 
+                     << (i - cur.length() + 1) << endl;
+                tokens.push_back({"ERROR", cur});
+                return tokens;
+            }
         }
     }
 
@@ -124,9 +133,16 @@ vector<Token> runDFA(
             if (state == "q_identifier" && keywords.count(cur)) {
                 tokType = "KEYWORD";
             }
+            if (tokType == "ERROR" || state == "q_error") {
+                tokens.push_back({tokType, cur});
+                cerr << "Lexical Error: Invalid token '" << cur << "' at end of input" << endl;
+                return tokens;
+            }
             tokens.push_back({tokType, cur});
-        } 
-       
+        } else {
+            cerr << "Lexical Error: Invalid token '" << cur << "' at end of input" << endl;
+            tokens.push_back({"ERROR", cur});
+        }
     }
 
     return tokens;
@@ -161,9 +177,13 @@ int lexer_main(int argc, char* argv[]) {
     // Run DFA
     vector<Token> toks = runDFA(input, rules, keywords);
 
-    // Print tokens
-    for (auto &t : toks)
+    // Print tokens, stop on ERROR
+    for (auto &t : toks) {
+        if (t.type == "ERROR") {
+            return 1;
+        }
         cout << "<" << t.type << "(" << t.lexeme << ")>\n";
+    }
 
     return 0;
 }

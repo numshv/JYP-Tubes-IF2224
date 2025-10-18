@@ -60,6 +60,7 @@
       "q_colon",
       "q_assign",
       "q_dot",
+      "q_range",
       "q_semicolon",
       "q_comma",
       "q_lparen",
@@ -94,7 +95,8 @@
         {"from": "q0", "input": "|", "to": "q_error"},
         {"from": "q0", "input": "^", "to": "q_error"},
         {"from": "q0", "input": "?", "to": "q_error"},
-        {"from": "q0", "input": "!", "to": "q_error"}
+        {"from": "q0", "input": "!", "to": "q_error"},
+        {"from": "q0", "input": "_", "to": "q_error"}
       ]
     },
     {
@@ -121,10 +123,22 @@
       ]
     },
     {
+      "comment": "INVALID IDENTIFIER",
+      "rules": [
+        {"from": "q_number", "input": "letter", "to": "q_error"},
+        {"from": "q_number", "input": "_", "to": "q_error"},
+        {"from": "q_scientific", "input": "letter", "to": "q_error"},
+        {"from": "q_scientific", "input": "_", "to": "q_error"},
+        {"from": "q_exp", "input": "letter", "to": "q_error"},
+        {"from": "q_exp_sign", "input": "letter", "to": "q_error"}
+      ]
+    },
+    {
       "comment": "CHARACTER LITERAL - Pattern: 'c' (single char inside quotes)",
       "rules": [
         {"from": "q0", "input": "'", "to": "q_char_start"},
         {"from": "q_char_start", "input": "any", "to": "q_char_content"},
+        {"from": "q_char_start", "input": "'", "to": "q_char_lit"},
         {"from": "q_char_content", "input": "'", "to": "q_char_lit"}
       ]
     },
@@ -164,11 +178,12 @@
       ]
     },
     {
-      "comment": "DELIMITERS - : := . ; , ( ) [ ]",
+      "comment": "DELIMITERS - : := . .. ; , ( ) [ ]",
       "rules": [
         {"from": "q0", "input": ":", "to": "q_colon"},
         {"from": "q_colon", "input": "=", "to": "q_assign"},
         {"from": "q0", "input": ".", "to": "q_dot"},
+        {"from": "q_dot", "input": ".", "to": "q_range"},
         {"from": "q0", "input": ";", "to": "q_semicolon"},
         {"from": "q0", "input": ",", "to": "q_comma"},
         {"from": "q0", "input": ")", "to": "q_rparen"},
@@ -198,6 +213,7 @@
     "q_colon": "COLON",
     "q_assign": "ASSIGN_OPERATOR",
     "q_dot": "DOT",
+    "q_range": "RANGE_OPERATOR",
     "q_semicolon": "SEMICOLON",
     "q_comma": "COMMA",
     "q_lparen": "LPARENTHESIS",
