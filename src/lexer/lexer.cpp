@@ -177,13 +177,20 @@ int lexer_main(int argc, char* argv[]) {
     // Run DFA
     vector<Token> toks = runDFA(input, rules, keywords);
 
-    // Print tokens, stop on ERROR
+    bool hasError = false;
     for (auto &t : toks) {
         if (t.type == "ERROR") {
-            return 1;
+            hasError = true;
+            break;
         }
-        cout << "<" << t.type << "(" << t.lexeme << ")>\n";
     }
 
-    return 0;
+    if (!hasError) {
+        for (auto &t : toks) {
+            std::cerr << "<" << t.type << "(" << t.lexeme << ")>\n";
+        }
+        return 0;
+    }
+
+    return 1;
 }
