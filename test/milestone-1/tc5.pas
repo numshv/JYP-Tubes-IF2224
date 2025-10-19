@@ -13,6 +13,7 @@ begin
     huge := 2147483647;
     pi := 3.14159265359;
     epsilon := 0.00001;
+    numbers: array[1..10] of integer    ;
     
     empty := ' ';
     quote := '''';

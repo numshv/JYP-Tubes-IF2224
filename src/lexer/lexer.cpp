@@ -187,7 +187,7 @@ int lexer_main(int argc, char* argv[]) {
 
     if (!hasError) {
         for (auto &t : toks) {
-            cout << "<" << t.type << "(" << t.lexeme << ")>\n";
+            std::cerr << "<" << t.type << "(" << t.lexeme << ")>\n";
         }
         return 0;
     }
