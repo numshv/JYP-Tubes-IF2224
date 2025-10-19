@@ -8,7 +8,7 @@ begin
     result := x + y;
     average := result / 2;
     if result > 25 then
-        writeln('Damn bro that''s huge')
+        writeln('Damn bro that is huge')
     else
-        writeln('Damn bro that''s kinda small ..');
+        writeln('Damn bro that is kinda small ..');
 end.
