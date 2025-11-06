@@ -436,7 +436,8 @@ ParseNode* while_statement() {
     addChild(node, matchToken({"KEYWORD", "selama"}));
     addChild(node, expression());
     addChild(node, matchToken({"KEYWORD", "lakukan"}));
-    addChild(node, statement());
+    // mau makesure dulu ke qna soalnya kalau di dikumentasinya pakai begin which compound statement
+    addChild(node, compound_statement());
     debugExit("while_statement");
     return node;
 }
@@ -452,7 +453,8 @@ ParseNode* for_statement() {
     if (cur_tok.lexeme == "ke" || cur_tok.lexeme == "turun-ke") advance();
     addChild(node, expression());
     addChild(node, matchToken({"KEYWORD", "lakukan"}));
-    addChild(node, statement());
+    // mau makesure dulu ke qna soalnya kalau di dikumentasinya pakai begin which compound statement
+    addChild(node, compound_statement());
     debugExit("for_statement");
     return node;
 }

@@ -4,9 +4,14 @@ variabel
     i, total: integer;
 mulai
     total := 0;
+    untuk i := 1 ke 10 lakukan
+    mulai
+        numbers[i] := i * 2;
+        total := total + numbers[i];
+    selesai;
     
     i := 10;
-    selama (i >= 1) dan i <> 0 lakukan
+    selama (i >= 1) dan (i <= 10) lakukan
     mulai
         writeln('Element ', i, ' = ', numbers[i]);
         i := i - 1;
