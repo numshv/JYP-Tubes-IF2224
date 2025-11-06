@@ -97,6 +97,15 @@ ParseNode* matchToken(const Token &expected) {
     }
 }
 
+ParseNode* tryMatchToken(const Token &expected) {
+    if (cur_tok.type == expected.type && cur_tok.lexeme == expected.lexeme) {
+        Token t = cur_tok;
+        advance();
+        return makeTokenNode(t);
+    }
+    return nullptr;
+}
+
 // ========== GRAMMAR RULES ==========
 
 // program → program-header + declaration-part + compound-statement + DOT
@@ -450,7 +459,18 @@ ParseNode* for_statement() {
     addChild(node, matchType("IDENTIFIER"));
     addChild(node, matchType("ASSIGN_OPERATOR"));
     addChild(node, expression());
-    if (cur_tok.lexeme == "ke" || cur_tok.lexeme == "turun-ke") advance();
+    
+    ParseNode* t = tryMatchToken({"KEYWORD", "ke"});
+    if (t == nullptr) {
+        t = tryMatchToken({"KEYWORD", "turun-ke"});
+    }
+
+    if (t != nullptr) {
+        addChild(node, t);
+    }
+
+
+
     addChild(node, expression());
     addChild(node, matchToken({"KEYWORD", "lakukan"}));
     // mau makesure dulu ke qna soalnya kalau di dikumentasinya pakai begin which compound statement
