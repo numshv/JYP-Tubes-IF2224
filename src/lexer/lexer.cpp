@@ -43,7 +43,9 @@ string classifyChar(char c, const unordered_map<char, string> &charMap) {
 vector<Token> runDFA(
     const string &input,
     const json &rules,
-    const unordered_set<string> &keywords
+    const unordered_set<string> &keywords,
+    const unordered_set<string> &logical_ops,
+    const unordered_set<string> &arith_word_ops
 ) 
 {
     // Build character classification map
@@ -103,8 +105,14 @@ vector<Token> runDFA(
             // No valid transition -> check if we ended a token
             if (finals.count(state)) {
                 string tokType = stateToToken[state];
-                if (state == "q_identifier" && keywords.count(cur)) {
-                    tokType = "KEYWORD";
+                if (state == "q_identifier") {
+                    if (logical_ops.count(cur)) {
+                        tokType = "LOGICAL_OPERATOR";
+                    } else if (arith_word_ops.count(cur)) {
+                        tokType = "ARITHMETIC_OPERATOR";
+                    } else if (keywords.count(cur)) {
+                        tokType = "KEYWORD";
+                    }
                 }
                 
                 if (tokType == "ERROR" || state == "q_error") {
@@ -130,8 +138,14 @@ vector<Token> runDFA(
     if (!cur.empty()) {
         if (finals.count(state)) {
             string tokType = stateToToken[state];
-            if (state == "q_identifier" && keywords.count(cur)) {
-                tokType = "KEYWORD";
+            if (state == "q_identifier") {
+                if (logical_ops.count(cur)) {
+                    tokType = "LOGICAL_OPERATOR";
+                } else if (arith_word_ops.count(cur)) {
+                    tokType = "ARITHMETIC_OPERATOR";
+                } else if (keywords.count(cur)) {
+                    tokType = "KEYWORD";
+                }
             }
             if (tokType == "ERROR" || state == "q_error") {
                 tokens.push_back({tokType, cur});
@@ -165,9 +179,11 @@ int lexer_main(int argc, char* argv[]) {
 
     // Load keyword/operator sets
     unordered_set<string> keywords;
+    unordered_set<string> logical_ops;
+    unordered_set<string> arith_word_ops;
     for (auto &kw : rules["keyword_lookup"]["keywords"]) keywords.insert(kw);
-    for (auto &kw : rules["keyword_lookup"]["logical_operators"]) keywords.insert(kw);
-    for (auto &kw : rules["keyword_lookup"]["arithmetic_word_operators"]) keywords.insert(kw);
+    for (auto &kw : rules["keyword_lookup"]["logical_operators"]) logical_ops.insert(kw);
+    for (auto &kw : rules["keyword_lookup"]["arithmetic_word_operators"]) arith_word_ops.insert(kw);
 
     // Read Pascal 
     ifstream f(argv[1]);
@@ -175,7 +191,7 @@ int lexer_main(int argc, char* argv[]) {
     stringstream buf; buf << f.rdbuf(); string input = buf.str();
 
     // Run DFA
-    vector<Token> toks = runDFA(input, rules, keywords);
+    vector<Token> toks = runDFA(input, rules, keywords, logical_ops, arith_word_ops);
 
     bool hasError = false;
     for (auto &t : toks) {
