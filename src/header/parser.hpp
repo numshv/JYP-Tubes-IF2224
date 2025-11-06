@@ -60,6 +60,9 @@ ParseNode* expression();
 ParseNode* simple_expression();
 ParseNode* term();
 ParseNode* factor();
+ParseNode* relational_operator();
+ParseNode* additive_operator();
+ParseNode* multiplicative_operator();
 
 ParseNode* buildTree(vector<Token> inputTokens);
 void parser_main(vector<Token> inputTokens);

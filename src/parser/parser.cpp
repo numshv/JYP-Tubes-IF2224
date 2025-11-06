@@ -77,7 +77,7 @@ ParseNode* matchType(const string &expectedType) {
         advance();
         return makeTokenNode(t);
     } else {
-        cerr << "❌ Syntax error: expected type '" << expectedType 
+        cerr << "Syntax error: expected type '" << expectedType 
              << "' but got (" << cur_tok.type << ", '" << cur_tok.lexeme << "')\n";
         return makeNode("<missing-" + expectedType + ">");
     }
@@ -90,7 +90,7 @@ ParseNode* matchToken(const Token &expected) {
         advance();
         return makeTokenNode(t);
     } else {
-        cerr << "❌ Syntax error: expected token (" << expected.type << ", '" 
+        cerr << "Syntax error: expected token (" << expected.type << ", '" 
              << expected.lexeme << "') but got (" << cur_tok.type << ", '" 
              << cur_tok.lexeme << "')\n";
         return makeNode("<missing-" + expected.type + ">");
@@ -149,7 +149,7 @@ ParseNode* const_declaration() {
             addChild(node, makeTokenNode(cur_tok));
             advance();
         } else {
-            cerr << "❌ Expected constant value but got " << cur_tok.lexeme << endl;
+            cerr << "Expected constant value but got " << cur_tok.lexeme << endl;
         }
         addChild(node, matchType("SEMICOLON"));
     } while (cur_tok.type == "IDENTIFIER");
@@ -227,7 +227,7 @@ ParseNode* type_spec() {
     } else if (cur_tok.lexeme == "larik") {
         addChild(node, array_type());
     } else {
-        cerr << "❌ Unknown type: " << cur_tok.lexeme << endl;
+        cerr << "Unknown type: " << cur_tok.lexeme << endl;
     }
     debugExit("type_spec");
     return node;
@@ -406,7 +406,13 @@ ParseNode* if_statement() {
     addChild(node, expression());
     addChild(node, matchToken({"KEYWORD", "maka"}));
     addChild(node, statement());
-    if (cur_tok.lexeme == "selain-itu") {
+
+    // may be done in cleaner way to handle selain-itu
+    if (cur_tok.type == "SEMICOLON" && current + 1 < tokens.size() && 
+        tokens[current + 1].type == "KEYWORD" && 
+        tokens[current + 1].lexeme == "selain-itu") {
+        addChild(node, makeTokenNode(cur_tok));
+        advance();
         addChild(node, makeTokenNode(cur_tok));
         advance();
         addChild(node, statement());
@@ -478,9 +484,9 @@ ParseNode* expression() {
     debugEnter("expression");
     auto *node = makeNode("<expression>");
     addChild(node, simple_expression());
-    if (cur_tok.type == "RELATIONAL_OPERATOR") {
-        addChild(node, makeTokenNode(cur_tok));
-        advance();
+    if (cur_tok.lexeme == "=" || cur_tok.lexeme == "<>" || cur_tok.lexeme == "<" ||
+        cur_tok.lexeme == "<=" || cur_tok.lexeme == ">" || cur_tok.lexeme == ">=") {
+        addChild(node, relational_operator());
         addChild(node, simple_expression());
     }
     debugExit("expression");
@@ -499,8 +505,7 @@ ParseNode* simple_expression() {
 
     addChild(node, term());
     while (cur_tok.type == "ARITHMETIC_OPERATOR" || cur_tok.lexeme == "atau") {
-        addChild(node, makeTokenNode(cur_tok));
-        advance();
+        addChild(node, additive_operator());
         addChild(node, term());
     }
     debugExit("simple_expression");
@@ -515,8 +520,7 @@ ParseNode* term() {
     while (cur_tok.type == "ARITHMETIC_OPERATOR" ||
            cur_tok.lexeme == "bagi" || cur_tok.lexeme == "mod" ||
            cur_tok.lexeme == "dan") {
-        addChild(node, makeTokenNode(cur_tok));
-        advance();
+        addChild(node, multiplicative_operator());
         addChild(node, factor());
     }
     debugExit("term");
@@ -550,9 +554,56 @@ ParseNode* factor() {
         addChild(node, expression());
         addChild(node, matchType("RPARENTHESIS"));
     } else {
-        cerr << "❌ Unexpected token in factor: " << cur_tok.lexeme << endl;
+        cerr << "Unexpected token in factor: " << cur_tok.lexeme << endl;
     }
     debugExit("factor");
+    return node;
+}
+
+// relational-operator → =, <>, <, <=, >, >=
+ParseNode* relational_operator() {
+    debugEnter("relational_operator");
+    auto *node = makeNode("<relational-operator>");
+    if (cur_tok.lexeme == "=" || cur_tok.lexeme == "<>" || cur_tok.lexeme == "<" ||
+        cur_tok.lexeme == "<=" || cur_tok.lexeme == ">" || cur_tok.lexeme == ">=") {
+        addChild(node, makeTokenNode(cur_tok));
+        advance();
+    } else {
+        cerr << "Expected relational operator but got " << cur_tok.lexeme << endl;
+        advance();
+    }
+    debugExit("relational_operator");
+    return node;
+}
+
+// additive-operator → +, -, atau
+ParseNode* additive_operator() {
+    debugEnter("additive-operator");
+    auto *node = makeNode("<additive-operator>");
+    if (cur_tok.lexeme == "+" || cur_tok.lexeme == "-" || cur_tok.lexeme == "atau") {
+        addChild(node, makeTokenNode(cur_tok));
+        advance();
+    } else {
+        cerr << "Expected additive operator but got " << cur_tok.lexeme << endl;
+        advance();
+    }
+    debugExit("additive-operator");
+    return node;
+}
+
+// multiplicative-operator → *, /, bagi, mod, dan
+ParseNode* multiplicative_operator() {
+    debugEnter("multiplicative-operator");
+    auto *node = makeNode("<multiplicative-operator>");
+    if (cur_tok.lexeme == "*" || cur_tok.lexeme == "/" || cur_tok.lexeme == "bagi" ||
+        cur_tok.lexeme == "mod" || cur_tok.lexeme == "dan") {
+        addChild(node, makeTokenNode(cur_tok));
+        advance();
+    } else {
+        cerr << "Expected multiplicative operator but got " << cur_tok.lexeme << endl;
+        advance();
+    }
+    debugExit("multiplicative-operator");
     return node;
 }
 
@@ -568,7 +619,7 @@ ParseNode* buildTree(vector<Token> inputTokens) {
     auto *root = program();
 
     if (cur_tok.type != "EOF")
-        cerr << "❌ Syntax error: unexpected token '" << cur_tok.lexeme << "' after program end\n";
+        cerr << "Syntax error: unexpected token '" << cur_tok.lexeme << "' after program end\n";
 
     return root;
 }

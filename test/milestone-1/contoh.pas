@@ -23,6 +23,11 @@ mulai
     hasil := angka + 10;
     jika hasil > 100 maka
         hasil := hasil - 1;
+    selain-itu
+        jika hasil > 200 maka
+            hasil := hasil - 20;
+        selain-itu
+            hasil := hasil mod 1;
     tulis('Hasil:', hasil);
 selesai;
 
