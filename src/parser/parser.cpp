@@ -353,15 +353,23 @@ ParseNode* compound_statement() {
     return node;
 }
 
+bool isStatementStart(const Token &t) {
+    return t.type == "IDENTIFIER" || t.lexeme == "jika" ||
+           t.lexeme == "selama" || t.lexeme == "untuk";
+}
+
 // statement-list → statement (SEMICOLON + statement)*
 ParseNode* statement_list() {
     debugEnter("statement_list");
     auto *node = makeNode("<statement-list>");
-    addChild(node, statement());
+
+    if (isStatementStart(cur_tok))
+        addChild(node, statement());
     while (cur_tok.type == "SEMICOLON") {
         addChild(node, makeTokenNode(cur_tok));
         advance();
-        addChild(node, statement());
+        if (isStatementStart(cur_tok))   // Only add a statement if valid
+            addChild(node, statement());
     }
     debugExit("statement_list");
     return node;
@@ -517,7 +525,7 @@ ParseNode* term() {
     debugEnter("term");
     auto *node = makeNode("<term>");
     addChild(node, factor());
-    while (cur_tok.type == "ARITHMETIC_OPERATOR" ||
+    while (cur_tok.lexeme == "*" || cur_tok.lexeme == "/" ||
            cur_tok.lexeme == "bagi" || cur_tok.lexeme == "mod" ||
            cur_tok.lexeme == "dan") {
         addChild(node, multiplicative_operator());
