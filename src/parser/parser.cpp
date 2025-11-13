@@ -144,14 +144,14 @@ ParseNode* declaration_part() {
     return node;
 }
 
-// const-declaration → KEYWORD(konstanta) + (IDENTIFIER = value + SEMICOLON)+
+// const-declaration → KEYWORD(konstanta) + (IDENTIFIER := value + SEMICOLON)+
 ParseNode* const_declaration() {
     debugEnter("const_declaration");
     auto *node = makeNode("<const-declaration>");
     addChild(node, matchToken({"KEYWORD", "konstanta"}));
     do {
         addChild(node, matchType("IDENTIFIER"));
-        addChild(node, matchToken({"RELATIONAL_OPERATOR", "="}));
+        addChild(node, matchType("ASSIGN_OPERATOR"));
         if (cur_tok.type == "NUMBER" || cur_tok.type == "CHAR_LITERAL" ||
             cur_tok.type == "STRING_LITERAL" || cur_tok.type == "BOOLEAN" ||
             cur_tok.type == "IDENTIFIER") {
@@ -166,14 +166,14 @@ ParseNode* const_declaration() {
     return node;
 }
 
-// type-declaration → KEYWORD(tipe) + (IDENTIFIER = type-definition + SEMICOLON)+
+// type-declaration → KEYWORD(tipe) + (IDENTIFIER := type-definition + SEMICOLON)+
 ParseNode* type_declaration() {
     debugEnter("type_declaration");
     auto *node = makeNode("<type-declaration>");
     addChild(node, matchToken({"KEYWORD", "tipe"}));
     do {
         addChild(node, matchType("IDENTIFIER"));
-        addChild(node, matchToken({"RELATIONAL_OPERATOR", "="}));
+        addChild(node, matchType("ASSIGN_OPERATOR"));
         addChild(node, type_definition());
         addChild(node, matchType("SEMICOLON"));
     } while (cur_tok.type == "IDENTIFIER");
@@ -479,18 +479,15 @@ ParseNode* for_statement() {
     return node;
 }
 
-// procedure/function-call → IDENTIFIER + (LPARENTHESIS + parameter-list + RPARENTHESIS)?
+// procedure/function-call → IDENTIFIER + (LPARENTHESIS + parameter-list + RPARENTHESIS)
 ParseNode* procedure_function_call() {
     debugEnter("procedure_function_call");
     auto *node = makeNode("<procedure/function-call>");
     addChild(node, matchType("IDENTIFIER"));
-    if (cur_tok.type == "LPARENTHESIS") {
-        addChild(node, makeTokenNode(cur_tok));
-        advance();
-        if (cur_tok.type != "RPARENTHESIS")
-            addChild(node, parameter_list());
-        addChild(node, matchType("RPARENTHESIS"));
-    }
+    addChild(node, matchType("LPARENTHESIS"));
+    if (cur_tok.type != "RPARENTHESIS")
+        addChild(node, parameter_list());
+    addChild(node, matchType("RPARENTHESIS"));
     debugExit("procedure_function_call");
     return node;
 }
