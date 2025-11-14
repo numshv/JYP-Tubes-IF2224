@@ -1,7 +1,6 @@
 YANG BLM BISA BUT NOT SURE APAKAH EMANG HARUSNYA GK BISA:
 
-- array[i]
-
-SIAPAPUN YANG BACA
-writeln, read,write, readln jadi keyword (QNA) (handling tidak ada di grammar spek dan aturan belum diubah di rule.json)
-assignment boolean (ex: found := true) belum dihandle (di grammar spek rasanya tidak ada)
+- array[i] (jadinya terserah di grammar termasuk apa tapi harus di handle)
+- writeln, read,write, readln jadi keyword (QNA) (handling tidak ada di grammar spek dan aturan belum diubah di rule.json)
+- assignment boolean (ex: found := true) belum dihandle (di grammar spek rasanya tidak ada)
+- perbaiki error message
