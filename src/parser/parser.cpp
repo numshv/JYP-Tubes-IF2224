@@ -419,24 +419,24 @@ ParseNode* assignment_statement() {
 ParseNode* if_statement() {
     debugEnter("if_statement");
     auto *node = makeNode("<if-statement>");
+
+    // jika <expr> maka <statement>
     addChild(node, matchToken({"KEYWORD", "jika"}));
     addChild(node, expression());
     addChild(node, matchToken({"KEYWORD", "maka"}));
     addChild(node, statement());
 
-    // may be done in cleaner way to handle selain-itu
-    if (cur_tok.type == "SEMICOLON" && current + 1 < tokens.size() && 
-        tokens[current + 1].type == "KEYWORD" && 
-        tokens[current + 1].lexeme == "selain-itu") {
-        addChild(node, makeTokenNode(cur_tok));
-        advance();
+    // optionally: selain-itu <statement>
+    if (cur_tok.type == "KEYWORD" && cur_tok.lexeme == "selain-itu") {
         addChild(node, makeTokenNode(cur_tok));
         advance();
         addChild(node, statement());
     }
+
     debugExit("if_statement");
     return node;
 }
+
 
 // while-statement → KEYWORD(selama) + expression + KEYWORD(lakukan) + statement
 ParseNode* while_statement() {
