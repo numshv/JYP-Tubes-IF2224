@@ -98,11 +98,11 @@ Secara umum, berikut adalah proses yang terjadi dalam lexer:
 
 | NIM | Nama | Tugas | persentase kontribusi |
 | :--- | :---: | :---: | ---: |
-| 13523058 | Noumisyifa Nabila Nareswari | - Membantu dalam menyusun DFA<br/> - Membuat laporan | 20% |
-| 13523066 | M. Ghifary Komara Putra | - Mengerjakan implementasi kode bagian engine DFA | 20% |
-| 13523072 | Sabilul Huda | - Memimpin penyusunan rule DFA dan graft | 20% |
-| 13523080 | Diyah Susan Nugrahani | - Memimpin penyusunan rule DFA dan graft | 20% |
-| 13523108 | Henry Filberto Shinelo | - Mengerjakan implementasi kode bagian engine DFA | 20% |
+| 13523058 | Noumisyifa Nabila Nareswari | Implementasi parser | 20% |
+| 13523066 | M. Ghifary Komara Putra | Menyusun laporan | 20% |
+| 13523072 | Sabilul Huda | Implementasi parser | 20% |
+| 13523080 | Diyah Susan Nugrahani | Menyusun sebagian besar dari laporan | 20% |
+| 13523108 | Henry Filberto Shinelo | Implementasi parser | 20% |
 
 
 ### Milestone 2 (Parser)
