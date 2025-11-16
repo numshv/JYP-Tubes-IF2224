@@ -388,29 +388,63 @@ ParseNode* statement_list() {
 ParseNode* statement() {
     debugEnter("statement");
     auto *node = makeNode("<statement>");
+    
     if (cur_tok.type == "IDENTIFIER") {
-        Token next = tokens[current + 1];
-        if (next.type == "ASSIGN_OPERATOR")
+        int lookahead = current + 1;
+        
+        // Skip array subscript jika ada: identifier[...]
+        if (lookahead < tokens.size() && tokens[lookahead].type == "LBRACKET") {
+            // Skip sampai ketemu RBRACKET
+            int bracket_count = 0;
+            while (lookahead < tokens.size()) {
+                if (tokens[lookahead].type == "LBRACKET") bracket_count++;
+                if (tokens[lookahead].type == "RBRACKET") {
+                    bracket_count--;
+                    if (bracket_count == 0) {
+                        lookahead++;
+                        break;
+                    }
+                }
+                lookahead++;
+            }
+        }
+        
+        // Sekarang cek token setelah identifier (atau setelah subscript)
+        if (lookahead < tokens.size() && tokens[lookahead].type == "ASSIGN_OPERATOR") {
             addChild(node, assignment_statement());
-        else
+        } else {
             addChild(node, procedure_function_call());
-    } else if (cur_tok.lexeme == "jika")
+        }
+    } 
+    else if (cur_tok.lexeme == "jika")
         addChild(node, if_statement());
     else if (cur_tok.lexeme == "selama")
         addChild(node, while_statement());
     else if (cur_tok.lexeme == "untuk")
         addChild(node, for_statement());
+    
     debugExit("statement");
     return node;
 }
 
-// assignment-statement → IDENTIFIER + ASSIGN_OPERATOR(:=) + expression
+// assignment-statement → IDENTIFIER [subscript]? + ASSIGN_OPERATOR(:=) + expression
 ParseNode* assignment_statement() {
     debugEnter("assignment_statement");
     auto *node = makeNode("<assignment-statement>");
+    
     addChild(node, matchType("IDENTIFIER"));
+    
+    // Handle array subscript on left-hand side
+    if (cur_tok.type == "LBRACKET") {
+        addChild(node, makeTokenNode(cur_tok));  
+        advance();
+        addChild(node, expression());           
+        addChild(node, matchType("RBRACKET"));  
+    }
+    
     addChild(node, matchType("ASSIGN_OPERATOR"));
     addChild(node, expression());
+    
     debugExit("assignment_statement");
     return node;
 }
