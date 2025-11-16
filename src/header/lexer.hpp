@@ -16,6 +16,8 @@ using namespace std;
 struct Token {
     string type;
     string lexeme;
+    int line;
+    int column;
 };
 
 unordered_map<char, string> buildCharMap(const json &charClasses);

@@ -12,8 +12,8 @@ bool gDebug = false;
 // ========== UTILITY ==========
 
 Token getCurrentToken() {
-    if (current < tokens.size()) return tokens[current];
-    return {"EOF", ""};
+    if (current < (int)tokens.size()) return tokens[current];
+    return Token{"EOF", "", 0, 0};
 }
 
 Token cur_tok = getCurrentToken();
@@ -26,13 +26,13 @@ void advance() {
 void debugEnter(const string &rule) {
     if (!gDebug) return;
     cerr << ">>> Entering rule: " << rule << " | Current token: (" 
-         << cur_tok.type << ", '" << cur_tok.lexeme << "')\n";
+         << cur_tok.type << ", '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << ")\n";
 }
 
 void debugExit(const string &rule) {
     if (!gDebug) return;
     cerr << "<<< Exiting rule: " << rule << " | Next token: (" 
-         << cur_tok.type << ", '" << cur_tok.lexeme << "')\n";
+         << cur_tok.type << ", '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << ")\n";
 }
 
 // ========== Parse Tree ==========
@@ -72,13 +72,13 @@ void printTree(ParseNode* node, const string &prefix, bool isLast) {
 
 ParseNode* matchType(const string &expectedType) {
     if (cur_tok.type == expectedType) {
-        if (gDebug) cerr << "Matched type: " << expectedType << " (" << cur_tok.lexeme << ")\n";
+        if (gDebug) cerr << "Matched type: " << expectedType << " (" << cur_tok.lexeme << " @ " << cur_tok.line << ":" << cur_tok.column << ")\n";
         Token t = cur_tok;
         advance();
         return makeTokenNode(t);
     } else {
         cerr << "Syntax error: expected type '" << expectedType 
-             << "' but got (" << cur_tok.type << ", '" << cur_tok.lexeme << "')\n";
+             << "' but got (" << cur_tok.type << ", '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << ")\n";
         return makeNode("<missing-" + expectedType + ">");
     }
 }
@@ -92,7 +92,7 @@ ParseNode* matchToken(const Token &expected) {
     } else {
         cerr << "Syntax error: expected token (" << expected.type << ", '" 
              << expected.lexeme << "') but got (" << cur_tok.type << ", '" 
-             << cur_tok.lexeme << "')\n";
+             << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << ")\n";
         return makeNode("<missing-" + expected.type + ">");
     }
 }
@@ -124,7 +124,7 @@ ParseNode* program() {
 ParseNode* program_header() {
     debugEnter("program_header");
     auto *node = makeNode("<program-header>");
-    addChild(node, matchToken({"KEYWORD", "program"}));
+    addChild(node, matchToken({"KEYWORD", "program", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, matchType("IDENTIFIER"));
     addChild(node, matchType("SEMICOLON"));
     debugExit("program_header");
@@ -148,7 +148,7 @@ ParseNode* declaration_part() {
 ParseNode* const_declaration() {
     debugEnter("const_declaration");
     auto *node = makeNode("<const-declaration>");
-    addChild(node, matchToken({"KEYWORD", "konstanta"}));
+    addChild(node, matchToken({"KEYWORD", "konstanta", cur_tok.line, cur_tok.column})); // NOTE
     do {
         addChild(node, matchType("IDENTIFIER"));
         addChild(node, matchType("ASSIGN_OPERATOR"));
@@ -158,7 +158,7 @@ ParseNode* const_declaration() {
             addChild(node, makeTokenNode(cur_tok));
             advance();
         } else {
-            cerr << "Expected constant value but got " << cur_tok.lexeme << endl;
+            cerr << "Expected constant value but got '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << endl;
         }
         addChild(node, matchType("SEMICOLON"));
     } while (cur_tok.type == "IDENTIFIER");
@@ -170,7 +170,7 @@ ParseNode* const_declaration() {
 ParseNode* type_declaration() {
     debugEnter("type_declaration");
     auto *node = makeNode("<type-declaration>");
-    addChild(node, matchToken({"KEYWORD", "tipe"}));
+    addChild(node, matchToken({"KEYWORD", "tipe", cur_tok.line, cur_tok.column})); // NOTE
     do {
         addChild(node, matchType("IDENTIFIER"));
         addChild(node, matchType("ASSIGN_OPERATOR"));
@@ -200,7 +200,7 @@ ParseNode* type_definition() {
 ParseNode* var_declaration() {
     debugEnter("var_declaration");
     auto *node = makeNode("<var-declaration>");
-    addChild(node, matchToken({"KEYWORD", "variabel"}));
+    addChild(node, matchToken({"KEYWORD", "variabel", cur_tok.line, cur_tok.column})); // NOTE
     do {
         addChild(node, identifier_list());
         addChild(node, matchType("COLON"));
@@ -236,7 +236,7 @@ ParseNode* type_spec() {
     } else if (cur_tok.lexeme == "larik") {
         addChild(node, array_type());
     } else {
-        cerr << "Unknown type: " << cur_tok.lexeme << endl;
+        cerr << "Unknown type: '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << endl;
     }
     debugExit("type_spec");
     return node;
@@ -246,11 +246,11 @@ ParseNode* type_spec() {
 ParseNode* array_type() {
     debugEnter("array_type");
     auto *node = makeNode("<array-type>");
-    addChild(node, matchToken({"KEYWORD", "larik"}));
+    addChild(node, matchToken({"KEYWORD", "larik", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, matchType("LBRACKET"));
     addChild(node, range());
     addChild(node, matchType("RBRACKET"));
-    addChild(node, matchToken({"KEYWORD", "dari"}));
+    addChild(node, matchToken({"KEYWORD", "dari", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, type_spec());
     debugExit("array_type");
     return node;
@@ -281,7 +281,7 @@ ParseNode* subprogram_declaration() {
 ParseNode* procedure_declaration() {
     debugEnter("procedure_declaration");
     auto *node = makeNode("<procedure-declaration>");
-    addChild(node, matchToken({"KEYWORD", "prosedur"}));
+    addChild(node, matchToken({"KEYWORD", "prosedur", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, matchType("IDENTIFIER"));
     if (cur_tok.type == "LPARENTHESIS") addChild(node, formal_parameter_list());
     addChild(node, matchType("SEMICOLON"));
@@ -295,7 +295,7 @@ ParseNode* procedure_declaration() {
 ParseNode* function_declaration() {
     debugEnter("function_declaration");
     auto *node = makeNode("<function-declaration>");
-    addChild(node, matchToken({"KEYWORD", "fungsi"}));
+    addChild(node, matchToken({"KEYWORD", "fungsi", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, matchType("IDENTIFIER"));
     if (cur_tok.type == "LPARENTHESIS") addChild(node, formal_parameter_list());
     addChild(node, matchType("COLON"));
@@ -355,9 +355,9 @@ ParseNode* block() {
 ParseNode* compound_statement() {
     debugEnter("compound_statement");
     auto *node = makeNode("<compound-statement>");
-    addChild(node, matchToken({"KEYWORD", "mulai"}));
+    addChild(node, matchToken({"KEYWORD", "mulai", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, statement_list());
-    addChild(node, matchToken({"KEYWORD", "selesai"}));
+    addChild(node, matchToken({"KEYWORD", "selesai", cur_tok.line, cur_tok.column})); // NOTE
     debugExit("compound_statement");
     return node;
 }
@@ -455,9 +455,9 @@ ParseNode* if_statement() {
     auto *node = makeNode("<if-statement>");
 
     // jika <expr> maka <statement>
-    addChild(node, matchToken({"KEYWORD", "jika"}));
+    addChild(node, matchToken({"KEYWORD", "jika", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, expression());
-    addChild(node, matchToken({"KEYWORD", "maka"}));
+    addChild(node, matchToken({"KEYWORD", "maka", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, statement());
 
     // optionally: selain-itu <statement>
@@ -480,9 +480,9 @@ ParseNode* if_statement() {
 ParseNode* while_statement() {
     debugEnter("while_statement");
     auto *node = makeNode("<while-statement>");
-    addChild(node, matchToken({"KEYWORD", "selama"}));
+    addChild(node, matchToken({"KEYWORD", "selama", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, expression());
-    addChild(node, matchToken({"KEYWORD", "lakukan"}));
+    addChild(node, matchToken({"KEYWORD", "lakukan", cur_tok.line, cur_tok.column})); // NOTE
 
     addChild(node, compound_statement());
     debugExit("while_statement");
@@ -493,24 +493,22 @@ ParseNode* while_statement() {
 ParseNode* for_statement() {
     debugEnter("for_statement");
     auto *node = makeNode("<for-statement>");
-    addChild(node, matchToken({"KEYWORD", "untuk"}));
+    addChild(node, matchToken({"KEYWORD", "untuk", cur_tok.line, cur_tok.column})); // NOTE
     addChild(node, matchType("IDENTIFIER"));
     addChild(node, matchType("ASSIGN_OPERATOR"));
     addChild(node, expression());
     
-    ParseNode* t = tryMatchToken({"KEYWORD", "ke"});
+    ParseNode* t = tryMatchToken({"KEYWORD", "ke", cur_tok.line, cur_tok.column}); // NOTE
     if (t == nullptr) {
-        t = tryMatchToken({"KEYWORD", "turun-ke"});
+        t = tryMatchToken({"KEYWORD", "turun-ke", cur_tok.line, cur_tok.column}); // NOTE
     }
 
     if (t != nullptr) {
         addChild(node, t);
     }
 
-
-
     addChild(node, expression());
-    addChild(node, matchToken({"KEYWORD", "lakukan"}));
+    addChild(node, matchToken({"KEYWORD", "lakukan", cur_tok.line, cur_tok.column})); // NOTE
 
     addChild(node, compound_statement());
     debugExit("for_statement");
@@ -597,7 +595,7 @@ ParseNode* factor() {
     debugEnter("factor");
     auto *node = makeNode("<factor>");
     if (cur_tok.type == "IDENTIFIER") {
-        Token next = tokens[current + 1];
+        Token next = (current + 1 < tokens.size()) ? tokens[current + 1] : Token{"EOF", "", 0, 0};
         if (next.type == "LBRACKET") {
             addChild(node, makeTokenNode(cur_tok));  
             advance();
@@ -631,7 +629,7 @@ ParseNode* factor() {
         addChild(node, expression());
         addChild(node, matchType("RPARENTHESIS"));
     } else {
-        cerr << "Unexpected token in factor: " << cur_tok.lexeme << endl;
+        cerr << "Unexpected token in factor: '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << endl;
     }
     debugExit("factor");
     return node;
@@ -646,7 +644,7 @@ ParseNode* relational_operator() {
         addChild(node, makeTokenNode(cur_tok));
         advance();
     } else {
-        cerr << "Expected relational operator but got " << cur_tok.lexeme << endl;
+        cerr << "Expected relational operator but got '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << endl;
         advance();
     }
     debugExit("relational_operator");
@@ -661,7 +659,7 @@ ParseNode* additive_operator() {
         addChild(node, makeTokenNode(cur_tok));
         advance();
     } else {
-        cerr << "Expected additive operator but got " << cur_tok.lexeme << endl;
+        cerr << "Expected additive operator but got '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << endl;
         advance();
     }
     debugExit("additive-operator");
@@ -677,7 +675,7 @@ ParseNode* multiplicative_operator() {
         addChild(node, makeTokenNode(cur_tok));
         advance();
     } else {
-        cerr << "Expected multiplicative operator but got " << cur_tok.lexeme << endl;
+        cerr << "Expected multiplicative operator but got '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << endl;
         advance();
     }
     debugExit("multiplicative-operator");
@@ -696,7 +694,7 @@ ParseNode* buildTree(vector<Token> inputTokens) {
     auto *root = program();
 
     if (cur_tok.type != "EOF")
-        cerr << "Syntax error: unexpected token '" << cur_tok.lexeme << "' after program end\n";
+        cerr << "Syntax error: unexpected token '" << cur_tok.lexeme << "' @ " << cur_tok.line << ":" << cur_tok.column << " after program end\n";
 
     return root;
 }
@@ -707,3 +705,4 @@ void parser_main(vector<Token> inputTokens) {
         printTree(root);
     }
 }
+	

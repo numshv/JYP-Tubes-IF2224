@@ -1,5 +1,5 @@
-#include "lexer.hpp"
-#include "parser.hpp"
+#include "header/lexer.hpp"
+#include "header/parser.hpp"
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
