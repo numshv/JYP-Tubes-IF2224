@@ -2,7 +2,7 @@ program hitungluas;
 variabel
     panjang, lebar, luas: integer;
     
-prosedur cetak_hasil(l)
+prosedur cetak_hasil(l:integer);
 mulai
     writeln('Luas = ', l);
 selesai;
