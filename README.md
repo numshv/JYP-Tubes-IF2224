@@ -103,3 +103,32 @@ Secara umum, berikut adalah proses yang terjadi dalam lexer:
 | 13523072 | Sabilul Huda | - Memimpin penyusunan rule DFA dan graft | 20% |
 | 13523080 | Diyah Susan Nugrahani | - Memimpin penyusunan rule DFA dan graft | 20% |
 | 13523108 | Henry Filberto Shinelo | - Mengerjakan implementasi kode bagian engine DFA | 20% |
+
+
+### Milestone 2 (Parser)
+
+#### Deskripsi Komponen Compiler yang Dibangun
+
+Pada milestone ini, kami membangun bagian parser (syntax analyzer), komponen compiler yang bertanggung jawab untuk menganalisis struktur sintaks dari sequence of tokens yang dihasilkan oleh lexer. Parser memverifikasi bahwa urutan token mengikuti aturan grammar bahasa Pascal-S dan membangun parse tree yang merepresentasikan struktur program.
+
+Komponen parser ini mengimplementasikan teknik **Recursive Descent Parsing**, dimana setiap aturan produksi grammar direpresentasikan sebagai fungsi parsing yang saling memanggil secara rekursif. Parse tree yang dihasilkan menunjukkan struktur sintaks program secara visual dalam bentuk tree.
+
+Secara umum, berikut adalah proses yang terjadi dalam parser:
+1. Menerima sequence of tokens dari lexer
+2. Memulai parsing dari simbol start (program)
+3. Melakukan recursive descent untuk setiap non-terminal
+4. Membangun parse tree node untuk setiap grammar rule
+5. Melakukan token matching untuk terminal symbols
+6. Mendeteksi syntax error jika token tidak sesuai ekspektasi
+7. Menghasilkan parse tree lengkap atau error message
+
+
+#### Pembagian Tugas
+
+| NIM | Nama | Tugas | persentase kontribusi |
+| :--- | :---: | :---: | ---: |
+| 13523058 | Noumisyifa Nabila Nareswari | - | 20% |
+| 13523066 | M. Ghifary Komara Putra | -  | 20% |
+| 13523072 | Sabilul Huda | -  | 20% |
+| 13523080 | Diyah Susan Nugrahani | -  | 20% |
+| 13523108 | Henry Filberto Shinelo | -  | 20% |
