@@ -211,6 +211,21 @@ ParseNode* var_declaration() {
     return node;
 }
 
+// var declaration with boolean -> KEYWORD(variabel) + (identifier-list + COLON + KEYWORD(boolean) + SEMICOLON)+
+ParseNode* var_declaration_boolean() {
+    debugEnter("var_declaration_boolean");
+    auto *node = makeNode("<var-declaration-boolean>");
+    addChild(node, matchToken({"KEYWORD", "variabel"}));
+    do {
+        addChild(node, identifier_list());
+        addChild(node, matchType("COLON"));
+        addChild(node, matchToken({"KEYWORD", "boolean"}));
+        addChild(node, matchType("SEMICOLON"));
+    } while (cur_tok.type == "IDENTIFIER");
+    debugExit("var_declaration_boolean");
+    return node;
+}
+
 // identifier-list → IDENTIFIER (COMMA + IDENTIFIER)*
 ParseNode* identifier_list() {
     debugEnter("identifier_list");
