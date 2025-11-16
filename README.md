@@ -98,16 +98,13 @@ Secara umum, berikut adalah proses yang terjadi dalam lexer:
 
 | NIM | Nama | Tugas | persentase kontribusi |
 | :--- | :---: | :---: | ---: |
-| 13523058 | Noumisyifa Nabila Nareswari | - Membantu dalam menyusun DFA<br/> - Membuat laporan | 20% |
-| 13523066 | M. Ghifary Komara Putra | - Mengerjakan implementasi kode bagian engine DFA | 20% |
-| 13523072 | Sabilul Huda | - Memimpin penyusunan rule DFA dan graft | 20% |
-| 13523080 | Diyah Susan Nugrahani | - Memimpin penyusunan rule DFA dan graft | 20% |
-| 13523108 | Henry Filberto Shinelo | - Mengerjakan implementasi kode bagian engine DFA | 20% |
-
+| 13523058 | Noumisyifa Nabila Nareswari | Menyusun DFA dan laporan | 20% |
+| 13523066 | M. Ghifary Komara Putra | Implementasi kode bagian engine DFA | 20% |
+| 13523072 | Sabilul Huda | Menyusun rule DFA dan menyusun grafik | 20% |
+| 13523080 | Diyah Susan Nugrahani | Menyusun rule DFA dan menyusun grafik | 20% |
+| 13523108 | Henry Filberto Shinelo | Implementasi kode bagian engine DFA | 20% |
 
 ### Milestone 2 (Parser)
-
-#### Deskripsi Komponen Compiler yang Dibangun
 
 Pada milestone ini, kami membangun bagian parser (syntax analyzer), komponen compiler yang bertanggung jawab untuk menganalisis struktur sintaks dari sequence of tokens yang dihasilkan oleh lexer. Parser memverifikasi bahwa urutan token mengikuti aturan grammar bahasa Pascal-S dan membangun parse tree yang merepresentasikan struktur program.
 
@@ -122,13 +119,12 @@ Secara umum, berikut adalah proses yang terjadi dalam parser:
 6. Mendeteksi syntax error jika token tidak sesuai ekspektasi
 7. Menghasilkan parse tree lengkap atau error message
 
-
 #### Pembagian Tugas
 
 | NIM | Nama | Tugas | persentase kontribusi |
 | :--- | :---: | :---: | ---: |
-| 13523058 | Noumisyifa Nabila Nareswari | - | 20% |
-| 13523066 | M. Ghifary Komara Putra | -  | 20% |
-| 13523072 | Sabilul Huda | -  | 20% |
-| 13523080 | Diyah Susan Nugrahani | -  | 20% |
-| 13523108 | Henry Filberto Shinelo | -  | 20% |
+| 13523058 | Noumisyifa Nabila Nareswari | implementasi parser | 20% |
+| 13523066 | M. Ghifary Komara Putra | menyusun laporan | 20% |
+| 13523072 | Sabilul Huda | implementasi parser | 20% |
+| 13523080 | Diyah Susan Nugrahani | menyusun laporan | 20% |
+| 13523108 | Henry Filberto Shinelo | implementasi parser | 20% |
