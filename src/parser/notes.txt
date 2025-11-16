@@ -1,0 +1,18 @@
+YANG BLM BISA BUT NOT SURE APAKAH EMANG HARUSNYA GK BISA:
+
+- assignment boolean (ex: found := true) belum dihandle (di grammar spek rasanya tidak ada)
+- perbaiki error message
+- kinda opsional since gk disebut di spek but technically keywordnya dibuat di spek M1, harusya kalau finish ini
+  bisa jalanin tc12 yg diambil dari dokumentasi PASCAL-S langsung:
+    - Case/Switch Statement
+    - Repeat-Until Loop
+    - Record/Rekaman
+    - comment???
+    - Record Field Access (Dot Notation)
+    - Multi-dimensional Array larik[1..10, 1..10]
+    - larik[-10..-1] dari real; Negative/Positive Array Bounds 
+    - Character Range larik['a'..'z'] dari char; larik['A'..'Z'] dari integer;
+    - Constant Expression in Array Bounds 
+
+
+- note: gDebug bisa dibuat true untuk liat error dimana

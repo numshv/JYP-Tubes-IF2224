@@ -73,13 +73,14 @@
 
   "keyword_lookup": {
     "keywords": [
-      "program", "var", "begin", "end", "if", "then", "else",
-      "while", "do", "for", "to", "downto", "integer", "real",
-      "boolean", "char", "array", "of", "procedure", "function",
-      "const", "type", "true", "false"
+        "program", "variabel", "mulai", "selesai", "jika", "maka", "selain-itu",
+        "selama", "lakukan", "untuk", "ke", "turun-ke", "integer", "real",
+        "boolean", "char", "larik", "dari", "prosedur", "fungsi",
+        "konstanta", "tipe", "true", "false", "kasus", "rekaman", "ulangi", "sampai"
+
     ],
-    "logical_operators": ["and", "or", "not"],
-    "arithmetic_word_operators": ["div", "mod"]
+    "logical_operators": ["dan", "atau", "tidak"],
+    "arithmetic_word_operators": ["bagi", "mod"]
   },
 
   "transitions": [
@@ -105,7 +106,8 @@
         {"from": "q0", "input": "letter", "to": "q_identifier"},
         {"from": "q_identifier", "input": "letter", "to": "q_identifier"},
         {"from": "q_identifier", "input": "digit", "to": "q_identifier"},
-        {"from": "q_identifier", "input": "_", "to": "q_identifier"}
+        {"from": "q_identifier", "input": "_", "to": "q_identifier"},
+        {"from": "q_identifier", "input": "-", "to": "q_identifier"}
       ]
     },
     {

@@ -16,15 +16,18 @@ using namespace std;
 struct Token {
     string type;
     string lexeme;
+    int line;
+    int column;
 };
 
-string classifyChar(char c);
+unordered_map<char, string> buildCharMap(const json &charClasses);
+string classifyChar(char c, const unordered_map<char, string> &charMap);
 vector<Token> runDFA(
     const string &input,
     const json &rules,
     const unordered_set<string> &keywords,
-    const unordered_map<string,string> &singleCharTokens,
-    const unordered_map<string,string> &multiCharTokens
+    const unordered_set<string> &logical_ops,
+    const unordered_set<string> &arith_word_ops
 );
 int lexer_main(int argc, char* argv[]);
 

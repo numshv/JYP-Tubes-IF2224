@@ -1,0 +1,57 @@
+program contohLengkap;
+
+konstanta
+    PI = 3;
+    GAYA = 8e-3;
+    HURUF = 'A';
+    KALIMAT = 'Hello World';
+
+tipe
+    Warna = integer;
+    Angka = integer;
+    Matriks = larik[1..10] dari real;
+
+variabel
+    x, y, z: real;
+    i, j: integer;
+    huruf: char;
+    benar: boolean;
+
+prosedur tampilkan(angka: integer);
+
+mulai
+    hasil := angka + 10;
+    jika hasil > 100 maka
+        hasil := hasil - 1;
+    selain-itu
+        jika hasil > 200 maka
+            hasil := hasil - 20;
+        selain-itu
+            hasil := hasil mod 1;
+    tulis('Hasil:', hasil);
+selesai;
+
+fungsi kuadrat(a: real): real;
+mulai
+    kuadrat := a * a;
+selesai;
+
+mulai
+    x := 1;
+    y := 5;
+    z := x / y - 1;
+    teks := 'Contoh string literal';
+    huruf := 'Z';
+    tampilkan(10);
+    i := 1;
+    selama i <= 10 lakukan
+        j := i * 2;
+        i := i + 1;
+
+
+    untuk j := 1 ke 5 lakukan
+        tulis('Iterasi ke-', j);
+
+    untuk j := 5 turun-ke 1 lakukan
+        tulis('Mundur ke-', j);
+selesai.

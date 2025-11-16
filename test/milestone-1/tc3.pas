@@ -13,7 +13,7 @@ begin
     i := 10;
     while i >= 1 do
     begin
-        writeln('Element ', i, ' = ', numbers[i]);
+        writeln('Sum = ', sum);
         i := i - 1;
     end;
 end.
