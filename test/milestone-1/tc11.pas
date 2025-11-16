@@ -3,10 +3,10 @@ variabel
     numbers: larik[1 .. 10] dari integer;
     i, total: integer;
 mulai
-    total := 0;
+    total := numbers[i];
     untuk i := 1 turun-ke 10 lakukan
     mulai
-        numbers := i * 2;
+        numbers := numbers[i] * 2;
         total := total + numbers;
     selesai;
     

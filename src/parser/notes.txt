@@ -1,6 +1,5 @@
 YANG BLM BISA BUT NOT SURE APAKAH EMANG HARUSNYA GK BISA:
 
-- array[i] (jadinya terserah di grammar termasuk apa tapi harus di handle)
 - assignment boolean (ex: found := true) belum dihandle (di grammar spek rasanya tidak ada)
 - perbaiki error message
 - note: gDebug bisa dibuat true untuk liat error dimana

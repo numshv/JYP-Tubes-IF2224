@@ -564,9 +564,18 @@ ParseNode* factor() {
     auto *node = makeNode("<factor>");
     if (cur_tok.type == "IDENTIFIER") {
         Token next = tokens[current + 1];
-        if (next.type == "LPARENTHESIS") {
+        if (next.type == "LBRACKET") {
+            addChild(node, makeTokenNode(cur_tok));  
+            advance();
+            addChild(node, makeTokenNode(cur_tok)); 
+            advance();
+            addChild(node, expression());            
+            addChild(node, matchType("RBRACKET"));
+        }
+        else if (next.type == "LPARENTHESIS") {
             addChild(node, procedure_function_call());
-        } else {
+        }
+        else {
             addChild(node, makeTokenNode(cur_tok));
             advance();
         }
