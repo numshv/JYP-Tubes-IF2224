@@ -7,7 +7,7 @@ using namespace std;
 
 vector<Token> tokens;
 int current = 0;
-bool gDebug = true;
+bool gDebug = false;
 
 // ========== UTILITY ==========
 
@@ -427,7 +427,11 @@ ParseNode* if_statement() {
     addChild(node, statement());
 
     // optionally: selain-itu <statement>
-    if (cur_tok.type == "KEYWORD" && cur_tok.lexeme == "selain-itu") {
+    if (cur_tok.type == "SEMICOLON" && current + 1 < tokens.size() && 
+        tokens[current + 1].type == "KEYWORD" && 
+        tokens[current + 1].lexeme == "selain-itu") {
+        addChild(node, makeTokenNode(cur_tok));
+        advance();
         addChild(node, makeTokenNode(cur_tok));
         advance();
         addChild(node, statement());
@@ -438,20 +442,20 @@ ParseNode* if_statement() {
 }
 
 
-// while-statement → KEYWORD(selama) + expression + KEYWORD(lakukan) + statement
+// while-statement → KEYWORD(selama) + expression + KEYWORD(lakukan) + compound-statement
 ParseNode* while_statement() {
     debugEnter("while_statement");
     auto *node = makeNode("<while-statement>");
     addChild(node, matchToken({"KEYWORD", "selama"}));
     addChild(node, expression());
     addChild(node, matchToken({"KEYWORD", "lakukan"}));
-    // mau makesure dulu ke qna soalnya kalau di dikumentasinya pakai begin which compound statement
+
     addChild(node, compound_statement());
     debugExit("while_statement");
     return node;
 }
 
-// for-statement → KEYWORD(untuk) + IDENTIFIER + ASSIGN_OPERATOR + expression + (KEYWORD(ke)/KEYWORD(turun-ke)) + expression + KEYWORD(lakukan) + statement
+// for-statement → KEYWORD(untuk) + IDENTIFIER + ASSIGN_OPERATOR + expression + (KEYWORD(ke)/KEYWORD(turun-ke)) + expression + KEYWORD(lakukan) + compound-statement
 ParseNode* for_statement() {
     debugEnter("for_statement");
     auto *node = makeNode("<for-statement>");
@@ -473,7 +477,7 @@ ParseNode* for_statement() {
 
     addChild(node, expression());
     addChild(node, matchToken({"KEYWORD", "lakukan"}));
-    // mau makesure dulu ke qna soalnya kalau di dikumentasinya pakai begin which compound statement
+
     addChild(node, compound_statement());
     debugExit("for_statement");
     return node;
