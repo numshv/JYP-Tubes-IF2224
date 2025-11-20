@@ -1,5 +1,6 @@
 #include "header/lexer.hpp"
 #include "header/parser.hpp"
+#include "header/ast.hpp"  
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -45,6 +46,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    parser_main(toks);
+    ParseNode* parseTree = parser_main(toks);
+    ASTNode* ast = ASTMain(parseTree);
     return 0;
 }

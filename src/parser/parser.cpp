@@ -699,10 +699,11 @@ ParseNode* buildTree(vector<Token> inputTokens) {
     return root;
 }
 
-void parser_main(vector<Token> inputTokens) {
+ParseNode* parser_main(vector<Token> inputTokens) {
     auto *root = buildTree(inputTokens);
     if (root) {
         printTree(root);
     }
+    return root;
 }
 	
