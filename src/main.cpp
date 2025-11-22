@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
     stringstream buf; buf << f.rdbuf(); string input = buf.str();
 
     // Run DFA
+    cout << "\n========== Generated Token ==========\n";
     vector<Token> toks = runDFA(input, rules, keywords, logical_ops, arith_word_ops);
 
     bool hasError = false;
