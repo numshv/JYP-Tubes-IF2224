@@ -9,6 +9,10 @@
 using std::string;
 using std::vector;
 
+// Forward declarations
+struct BlockNode;
+struct ParamNode;
+
 struct ASTNode {
     string nodeType;              // Jenis node 
     string dataType;              // Hasil type checking 
@@ -18,10 +22,12 @@ struct ASTNode {
     vector<ASTNode*> children;
 
     ASTNode(const string &type) : nodeType(type) {}
-    virtual ~ASTNode() {}
+    virtual ~ASTNode() {
+        for (auto child : children) {
+            delete child;
+        }
+    }
 };
-
-// NOTE: tolong proofread cmiiw banget siapa tau salah/kurang
 
 // Simple Literals
 
@@ -57,6 +63,19 @@ struct VarNode : ASTNode {
     VarNode(const string &n) : ASTNode("Var"), name(n) {}
 };
 
+// Array Access
+struct ArrayAccessNode : ASTNode {
+    string arrayName;
+    ASTNode* index;
+    
+    ArrayAccessNode(const string &name, ASTNode* idx)
+        : ASTNode("ArrayAccess"), arrayName(name), index(idx) {}
+    
+    ~ArrayAccessNode() {
+        delete index;
+    }
+};
+
 // Expressions
 
 struct BinOpNode : ASTNode {
@@ -66,16 +85,38 @@ struct BinOpNode : ASTNode {
 
     BinOpNode(const string &o, ASTNode* l, ASTNode* r)
         : ASTNode("BinOp"), op(o), left(l), right(r) {}
+    
+    ~BinOpNode() {
+        delete left;
+        delete right;
+    }
+};
+
+struct UnaryOpNode : ASTNode {
+    string op;
+    ASTNode* operand;
+    
+    UnaryOpNode(const string &o, ASTNode* operand)
+        : ASTNode("UnaryOp"), op(o), operand(operand) {}
+    
+    ~UnaryOpNode() {
+        delete operand;
+    }
 };
 
 // Statements
 
 struct AssignNode : ASTNode {
-    VarNode* target;
+    ASTNode* target;  
     ASTNode* value;
 
-    AssignNode(VarNode* t, ASTNode* v)
+    AssignNode(ASTNode* t, ASTNode* v)
         : ASTNode("Assign"), target(t), value(v) {}
+    
+    ~AssignNode() {
+        delete target;
+        delete value;
+    }
 };
 
 struct ProcedureCallNode : ASTNode {
@@ -83,6 +124,10 @@ struct ProcedureCallNode : ASTNode {
     vector<ASTNode*> args;
 
     ProcedureCallNode(const string &name) : ASTNode("ProcedureCall"), procName(name) {}
+    
+    ~ProcedureCallNode() {
+        for (auto arg : args) delete arg;
+    }
 };
 
 struct IfNode : ASTNode {
@@ -92,6 +137,12 @@ struct IfNode : ASTNode {
 
     IfNode(ASTNode* cond, ASTNode* t, ASTNode* e = nullptr)
         : ASTNode("If"), condition(cond), thenBranch(t), elseBranch(e) {}
+    
+    ~IfNode() {
+        delete condition;
+        delete thenBranch;
+        if (elseBranch) delete elseBranch;
+    }
 };
 
 struct WhileNode : ASTNode {
@@ -100,6 +151,11 @@ struct WhileNode : ASTNode {
 
     WhileNode(ASTNode* cond, ASTNode* b)
         : ASTNode("While"), condition(cond), body(b) {}
+    
+    ~WhileNode() {
+        delete condition;
+        delete body;
+    }
 };
 
 struct ForNode : ASTNode {
@@ -109,6 +165,12 @@ struct ForNode : ASTNode {
 
     ForNode(const string &ctr, ASTNode* s, ASTNode* e, ASTNode* b, bool asc)
         : ASTNode("For"), counter(ctr), start(s), end(e), body(b), ascending(asc) {}
+    
+    ~ForNode() {
+        delete start;
+        delete end;
+        delete body;
+    }
 };
 
 // Declarations
@@ -123,20 +185,84 @@ struct VarDeclNode : ASTNode {
 struct ConstDeclNode : ASTNode {
     string name;
     ASTNode* value;
+    
     ConstDeclNode(const string &n, ASTNode* v)
         : ASTNode("ConstDecl"), name(n), value(v) {}
+    
+    ~ConstDeclNode() {
+        delete value;
+    }
 };
 
 struct TypeDeclNode : ASTNode {
     string name;
-    ASTNode* definition;
-    TypeDeclNode(const string &n, ASTNode* def)
+    string definition;  // Type name or definition
+    
+    TypeDeclNode(const string &n, const string &def)
         : ASTNode("TypeDecl"), name(n), definition(def) {}
 };
 
+struct ArrayTypeNode : ASTNode {
+    ASTNode* rangeStart;
+    ASTNode* rangeEnd;
+    string elementType;
+    
+    ArrayTypeNode(ASTNode* start, ASTNode* end, const string &elemType)
+        : ASTNode("ArrayType"), rangeStart(start), rangeEnd(end), elementType(elemType) {}
+    
+    ~ArrayTypeNode() {
+        delete rangeStart;
+        delete rangeEnd;
+    }
+};
+
+struct ParamNode : ASTNode {
+    vector<string> names;
+    string typeName;
+    bool isVar;  // true if "var" parameter
+    
+    ParamNode() : ASTNode("Param"), isVar(false) {}
+};
+
+struct ProcedureDeclNode : ASTNode {
+    string name;
+    vector<ParamNode*> params;
+    BlockNode* body;
+    
+    ProcedureDeclNode(const string &n)
+        : ASTNode("ProcedureDecl"), name(n), body(nullptr) {}
+    
+    ~ProcedureDeclNode() {
+        for (auto p : params) delete p;
+        if (body) delete body;
+    }
+};
+
+struct FunctionDeclNode : ASTNode {
+    string name;
+    vector<ParamNode*> params;
+    string returnType;
+    BlockNode* body;
+    
+    FunctionDeclNode(const string &n, const string &retType)
+        : ASTNode("FunctionDecl"), name(n), returnType(retType), body(nullptr) {}
+    
+    ~FunctionDeclNode() {
+        for (auto p : params) delete p;
+        if (body) delete body;
+    }
+};
+
 struct BlockNode : ASTNode {
+    vector<ASTNode*> declarations;  // const, type, var, subprogram declarations
     vector<ASTNode*> statements;
+    
     BlockNode() : ASTNode("Block") {}
+    
+    ~BlockNode() {
+        for (auto d : declarations) delete d;
+        for (auto s : statements) delete s;
+    }
 };
 
 // Program Root
@@ -148,12 +274,16 @@ struct ProgramNode : ASTNode {
 
     ProgramNode(const string &n)
         : ASTNode("Program"), name(n), block(nullptr) {}
+    
+    ~ProgramNode() {
+        for (auto d : declarations) delete d;
+        if (block) delete block;
+    }
 };
 
-
-
+// Function declarations
 ASTNode* buildAST(ParseNode* root);
 ASTNode* ASTMain(ParseNode* parseRoot);
-
+void printAST(ASTNode* node, const string& prefix = "", bool isLast = true);
 
 #endif
