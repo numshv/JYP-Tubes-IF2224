@@ -4,6 +4,16 @@
 
 using namespace std;
 
+ProcedureDeclNode::~ProcedureDeclNode() {
+    for (auto p : params) delete p;
+    if (body) delete body;
+}
+
+FunctionDeclNode::~FunctionDeclNode() {
+    for (auto p : params) delete p;
+    if (body) delete body;
+}
+
 // HELPER
 static string getTokenText(ParseNode* p) {
     if (!p) return "";
@@ -24,10 +34,8 @@ static bool isToken(ParseNode* p, const string& prefix) {
     return p->label.rfind(prefix, 0) == 0;
 }
 
-// Forward declaration
 ASTNode* convert(ParseNode* p);
 
-// EXPRESSION BUILDERS
 ASTNode* buildFactor(ParseNode* p) {
     if (!p || p->children.empty()) return nullptr;
     
@@ -42,7 +50,7 @@ ASTNode* buildFactor(ParseNode* p) {
         return new NumberNode(stoi(val));
     }
 
-    // STRINGL ITERAL
+    // STRING LITERAL
     if (isToken(c, "STRING_LITERAL")) {
         return new StringNode(getTokenText(c));
     }
@@ -64,13 +72,13 @@ ASTNode* buildFactor(ParseNode* p) {
     if (isToken(c, "IDENTIFIER")) {
         string name = getTokenText(c);
         
-        // Check for array access: IDENTIFIER [ expr ]
+        // Check array access: IDENTIFIER [ expr ]
         if (p->children.size() >= 4 && isToken(p->children[1], "LBRACKET")) {
             ASTNode* indexExpr = convert(p->children[2]);
             return new ArrayAccessNode(name, indexExpr);
         }
         
-        // Check for function call
+        // Check function call
         if (p->children.size() >= 2 && has(p->children[1], "<procedure/function-call>")) {
             return convert(p->children[1]);
         }
@@ -127,14 +135,14 @@ ASTNode* buildSimpleExpression(ParseNode* p) {
     
     size_t idx = 0;
     
-    // Check for unary op at the beginning
+    // Check unary op di awal
     if (has(p->children[0], "ARITHMETIC_OPERATOR")) {
         string op = getTokenText(p->children[0]);
         ASTNode* operand = convert(p->children[1]);
         ASTNode* node = new UnaryOpNode(op, operand);
         idx = 2;
         
-        // Continue with binary operations
+        // binary operations
         while (idx + 1 < p->children.size()) {
             if (has(p->children[idx], "operator")) {
                 string binOp = getTokenText(p->children[idx]->children[0]);
@@ -148,7 +156,7 @@ ASTNode* buildSimpleExpression(ParseNode* p) {
         return node;
     }
     
-    // No unary operator, start with first term
+    // No unary operator
     ASTNode* node = convert(p->children[0]);
     idx = 1;
     
@@ -184,7 +192,6 @@ ASTNode* buildExpression(ParseNode* p) {
     return convert(p->children[0]);
 }
 
-// MAIN CONVERTER
 ASTNode* convert(ParseNode* p) {
     if (!p) return nullptr;
 
@@ -307,7 +314,7 @@ ASTNode* convert(ParseNode* p) {
         string procName = getTokenText(p->children[1]);
         ProcedureDeclNode* proc = new ProcedureDeclNode(procName);
         
-        // Parse parameters if exists
+        // Parse parameters
         size_t blockIdx = 3; // Default: prosedur ID ; block ;
         if (p->children.size() > 3 && has(p->children[2], "<formal-parameter-list>")) {
             ParseNode* paramList = p->children[2];
@@ -361,7 +368,7 @@ ASTNode* convert(ParseNode* p) {
         
         FunctionDeclNode* func = new FunctionDeclNode(funcName, returnType);
         
-        // Parse parameters if exists
+        // Parse parameters
         if (p->children.size() > 3 && has(p->children[2], "<formal-parameter-list>")) {
             ParseNode* paramList = p->children[2];
             for (auto child : paramList->children) {
@@ -401,7 +408,7 @@ ASTNode* convert(ParseNode* p) {
         
         for (auto child : p->children) {
             if (has(child, "<declaration-part>")) {
-                // Parse declarations within block
+                // Parse declarations
                 for (auto decl : child->children) {
                     if (has(decl, "<var-declaration>")) {
                         ASTNode* varDecl = convert(decl);
@@ -431,7 +438,7 @@ ASTNode* convert(ParseNode* p) {
     if (has(p, "<compound-statement>")) {
         BlockNode* block = new BlockNode();
         
-        // Find statement-list
+        // statement-list
         for (auto child : p->children) {
             if (has(child, "<statement-list>")) {
                 for (auto s : child->children) {
@@ -468,13 +475,168 @@ ASTNode* convert(ParseNode* p) {
         return new AssignNode(target, value);
     }
 
+    // IF STATEMENT
+    if (has(p, "<if-statement>")) {
+        ASTNode* condition = nullptr;
+        ASTNode* thenBranch = nullptr;
+        ASTNode* elseBranch = nullptr;
+        
+        size_t idx = 0;
+        
+        // "jika"
+        if (idx < p->children.size() && isToken(p->children[idx], "KEYWORD")) {
+            idx++;
+        }
+        
+        // condition exp
+        if (idx < p->children.size() && has(p->children[idx], "<expression>")) {
+            condition = convert(p->children[idx]);
+            idx++;
+        }
+        
+        // "maka"
+        if (idx < p->children.size() && isToken(p->children[idx], "KEYWORD")) {
+            idx++;
+        }
+        
+        // then
+        if (idx < p->children.size() && has(p->children[idx], "<statement>")) {
+            thenBranch = convert(p->children[idx]);
+            idx++;
+        }
+        
+        // else
+        if (idx < p->children.size() && isToken(p->children[idx], "SEMICOLON")) {
+            idx++;
+        }
+        
+        if (idx < p->children.size() && isToken(p->children[idx], "KEYWORD")) {
+            string kw = getTokenText(p->children[idx]);
+            if (kw == "selain-itu") {
+                idx++;
+                if (idx < p->children.size() && has(p->children[idx], "<statement>")) {
+                    elseBranch = convert(p->children[idx]);
+                }
+            }
+        }
+        
+        return new IfNode(condition, thenBranch, elseBranch);
+    }
+
+    // WHILE STATEMENT
+    if (has(p, "<while-statement>")) {
+        ASTNode* condition = nullptr;
+        ASTNode* body = nullptr;
+        
+        size_t idx = 0;
+        
+        // "selama"
+        if (idx < p->children.size() && isToken(p->children[idx], "KEYWORD")) {
+            idx++;
+        }
+        
+        if (idx < p->children.size() && has(p->children[idx], "<expression>")) {
+            condition = convert(p->children[idx]);
+            idx++;
+        }
+        
+        // "lakukan"
+        if (idx < p->children.size() && isToken(p->children[idx], "KEYWORD")) {
+            idx++;
+        }
+        
+        // compound-statement
+        if (idx < p->children.size() && has(p->children[idx], "<compound-statement>")) {
+            body = convert(p->children[idx]);
+        }
+        
+        return new WhileNode(condition, body);
+    }
+
+    // FOR STATEMENT
+    if (has(p, "<for-statement>")) {
+        string counter = "";
+        ASTNode* start = nullptr;
+        ASTNode* end = nullptr;
+        ASTNode* body = nullptr;
+        bool ascending = true;
+        
+        size_t idx = 0;
+        
+        // "untuk"
+        if (idx < p->children.size() && isToken(p->children[idx], "KEYWORD")) {
+            idx++;
+        }
+        
+        if (idx < p->children.size() && isToken(p->children[idx], "IDENTIFIER")) {
+            counter = getTokenText(p->children[idx]);
+            idx++;
+        }
+        
+        // ":=" 
+        if (idx < p->children.size() && isToken(p->children[idx], "ASSIGN_OPERATOR")) {
+            idx++;
+        }
+        
+        if (idx < p->children.size() && has(p->children[idx], "<expression>")) {
+            start = convert(p->children[idx]);
+            idx++;
+        }
+        
+        // Check "ke" or "turun-ke"
+        if (idx < p->children.size() && isToken(p->children[idx], "KEYWORD")) {
+            string kw = getTokenText(p->children[idx]);
+            if (kw == "turun-ke") {
+                ascending = false;
+            }
+            idx++;
+        }
+        
+        if (idx < p->children.size() && has(p->children[idx], "<expression>")) {
+            end = convert(p->children[idx]);
+            idx++;
+        }
+        
+        // "lakukan"
+        if (idx < p->children.size() && isToken(p->children[idx], "KEYWORD")) {
+            idx++;
+        }
+        
+        if (idx < p->children.size() && has(p->children[idx], "<compound-statement>")) {
+            body = convert(p->children[idx]);
+        }
+        
+        return new ForNode(counter, start, end, body, ascending);
+    }
+
+    // PROCEDURE/FUNCTION CALL
+    if (has(p, "<procedure/function-call>")) {
+        if (p->children.empty()) return nullptr;
+        
+        string name = getTokenText(p->children[0]);
+        ProcedureCallNode* call = new ProcedureCallNode(name);
+        
+        // Parse arguments
+        for (auto child : p->children) {
+            if (has(child, "<parameter-list>")) {
+                for (auto param : child->children) {
+                    if (has(param, "<expression>")) {
+                        ASTNode* arg = convert(param);
+                        if (arg) call->args.push_back(arg);
+                    }
+                }
+            }
+        }
+        
+        return call;
+    }
+
     // EXPRESSIONS
     if (has(p, "<expression>")) return buildExpression(p);
     if (has(p, "<simple-expression>")) return buildSimpleExpression(p);
     if (has(p, "<term>")) return buildTerm(p);
     if (has(p, "<factor>")) return buildFactor(p);
 
-    // STATEMENT (wrapper)
     if (has(p, "<statement>")) {
         if (p->children.empty()) return nullptr;
         return convert(p->children[0]);
@@ -486,6 +648,215 @@ ASTNode* convert(ParseNode* p) {
     }
 
     return nullptr;
+}
+
+void printAST(ASTNode* node, const string& prefix, bool isLast) {
+    if (!node) return;
+    
+    cout << prefix;
+    cout << (isLast ? "└── " : "├── ");
+    
+    cout << node->nodeType;
+    
+    if (node->nodeType == "Number") {
+        cout << ": " << static_cast<NumberNode*>(node)->value;
+    }
+    else if (node->nodeType == "Real") {
+        cout << ": " << static_cast<RealNode*>(node)->value;
+    }
+    else if (node->nodeType == "String") {
+        cout << ": \"" << static_cast<StringNode*>(node)->value << "\"";
+    }
+    else if (node->nodeType == "Char") {
+        cout << ": '" << static_cast<CharNode*>(node)->value << "'";
+    }
+    else if (node->nodeType == "Boolean") {
+        cout << ": " << (static_cast<BoolNode*>(node)->value ? "true" : "false");
+    }
+    else if (node->nodeType == "Var") {
+        cout << ": " << static_cast<VarNode*>(node)->name;
+    }
+    else if (node->nodeType == "ArrayAccess") {
+        cout << ": " << static_cast<ArrayAccessNode*>(node)->arrayName;
+    }
+    else if (node->nodeType == "BinOp") {
+        cout << ": " << static_cast<BinOpNode*>(node)->op;
+    }
+    else if (node->nodeType == "UnaryOp") {
+        cout << ": " << static_cast<UnaryOpNode*>(node)->op;
+    }
+    else if (node->nodeType == "Program") {
+        cout << ": " << static_cast<ProgramNode*>(node)->name;
+    }
+    else if (node->nodeType == "VarDecl") {
+        VarDeclNode* vd = static_cast<VarDeclNode*>(node);
+        cout << ": ";
+        for (size_t i = 0; i < vd->names.size(); i++) {
+            cout << vd->names[i];
+            if (i + 1 < vd->names.size()) cout << ", ";
+        }
+        cout << " : " << vd->typeName;
+    }
+    else if (node->nodeType == "ConstDecl") {
+        cout << ": " << static_cast<ConstDeclNode*>(node)->name;
+    }
+    else if (node->nodeType == "TypeDecl") {
+        cout << ": " << static_cast<TypeDeclNode*>(node)->name;
+    }
+    else if (node->nodeType == "ProcedureDecl") {
+        cout << ": " << static_cast<ProcedureDeclNode*>(node)->name;
+    }
+    else if (node->nodeType == "FunctionDecl") {
+        FunctionDeclNode* fd = static_cast<FunctionDeclNode*>(node);
+        cout << ": " << fd->name << " -> " << fd->returnType;
+    }
+    else if (node->nodeType == "ProcedureCall") {
+        cout << ": " << static_cast<ProcedureCallNode*>(node)->procName;
+    }
+    else if (node->nodeType == "For") {
+        ForNode* fn = static_cast<ForNode*>(node);
+        cout << ": " << fn->counter << " (" << (fn->ascending ? "ke" : "turun-ke") << ")";
+    }
+    
+    cout << endl;
+    
+    string newPrefix = prefix + (isLast ? "    " : "│   ");
+    
+    if (node->nodeType == "Program") {
+        ProgramNode* prog = static_cast<ProgramNode*>(node);
+        size_t totalChildren = prog->declarations.size() + (prog->block ? 1 : 0);
+        
+        for (size_t i = 0; i < prog->declarations.size(); i++) {
+            printAST(prog->declarations[i], newPrefix, i + 1 == totalChildren && !prog->block);
+        }
+        if (prog->block) {
+            printAST(prog->block, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "Block") {
+        BlockNode* block = static_cast<BlockNode*>(node);
+        size_t totalChildren = block->declarations.size() + block->statements.size();
+        size_t count = 0;
+        
+        for (size_t i = 0; i < block->declarations.size(); i++) {
+            count++;
+            printAST(block->declarations[i], newPrefix, count == totalChildren);
+        }
+        for (size_t i = 0; i < block->statements.size(); i++) {
+            count++;
+            printAST(block->statements[i], newPrefix, count == totalChildren);
+        }
+    }
+    else if (node->nodeType == "VarDecl") {
+        // no child
+    }
+    else if (node->nodeType == "ConstDecl") {
+        ConstDeclNode* cd = static_cast<ConstDeclNode*>(node);
+        if (cd->value) {
+            printAST(cd->value, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "ProcedureDecl") {
+        ProcedureDeclNode* pd = static_cast<ProcedureDeclNode*>(node);
+        size_t totalChildren = pd->params.size() + (pd->body ? 1 : 0);
+        
+        for (size_t i = 0; i < pd->params.size(); i++) {
+            ParamNode* param = pd->params[i];
+            cout << newPrefix << (i + 1 == totalChildren && !pd->body ? "└── " : "├── ");
+            cout << "Param: ";
+            for (size_t j = 0; j < param->names.size(); j++) {
+                cout << param->names[j];
+                if (j + 1 < param->names.size()) cout << ", ";
+            }
+            cout << " : " << param->typeName << endl;
+        }
+        if (pd->body) {
+            printAST(pd->body, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "FunctionDecl") {
+        FunctionDeclNode* fd = static_cast<FunctionDeclNode*>(node);
+        size_t totalChildren = fd->params.size() + (fd->body ? 1 : 0);
+        
+        for (size_t i = 0; i < fd->params.size(); i++) {
+            ParamNode* param = fd->params[i];
+            cout << newPrefix << (i + 1 == totalChildren && !fd->body ? "└── " : "├── ");
+            cout << "Param: ";
+            for (size_t j = 0; j < param->names.size(); j++) {
+                cout << param->names[j];
+                if (j + 1 < param->names.size()) cout << ", ";
+            }
+            cout << " : " << param->typeName << endl;
+        }
+        if (fd->body) {
+            printAST(fd->body, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "Assign") {
+        AssignNode* an = static_cast<AssignNode*>(node);
+        if (an->target) printAST(an->target, newPrefix, !an->value);
+        if (an->value) printAST(an->value, newPrefix, true);
+    }
+    else if (node->nodeType == "BinOp") {
+        BinOpNode* bn = static_cast<BinOpNode*>(node);
+        if (bn->left) printAST(bn->left, newPrefix, !bn->right);
+        if (bn->right) printAST(bn->right, newPrefix, true);
+    }
+    else if (node->nodeType == "UnaryOp") {
+        UnaryOpNode* un = static_cast<UnaryOpNode*>(node);
+        if (un->operand) printAST(un->operand, newPrefix, true);
+    }
+    else if (node->nodeType == "ArrayAccess") {
+        ArrayAccessNode* aan = static_cast<ArrayAccessNode*>(node);
+        if (aan->index) printAST(aan->index, newPrefix, true);
+    }
+    else if (node->nodeType == "If") {
+        IfNode* ifn = static_cast<IfNode*>(node);
+        size_t childCount = (ifn->condition ? 1 : 0) + (ifn->thenBranch ? 1 : 0) + (ifn->elseBranch ? 1 : 0);
+        size_t count = 0;
+        
+        if (ifn->condition) {
+            count++;
+            printAST(ifn->condition, newPrefix, count == childCount);
+        }
+        if (ifn->thenBranch) {
+            count++;
+            printAST(ifn->thenBranch, newPrefix, count == childCount);
+        }
+        if (ifn->elseBranch) {
+            count++;
+            printAST(ifn->elseBranch, newPrefix, count == childCount);
+        }
+    }
+    else if (node->nodeType == "While") {
+        WhileNode* wn = static_cast<WhileNode*>(node);
+        if (wn->condition) printAST(wn->condition, newPrefix, !wn->body);
+        if (wn->body) printAST(wn->body, newPrefix, true);
+    }
+    else if (node->nodeType == "For") {
+        ForNode* fn = static_cast<ForNode*>(node);
+        size_t childCount = (fn->start ? 1 : 0) + (fn->end ? 1 : 0) + (fn->body ? 1 : 0);
+        size_t count = 0;
+        
+        if (fn->start) {
+            count++;
+            printAST(fn->start, newPrefix, count == childCount);
+        }
+        if (fn->end) {
+            count++;
+            printAST(fn->end, newPrefix, count == childCount);
+        }
+        if (fn->body) {
+            count++;
+            printAST(fn->body, newPrefix, count == childCount);
+        }
+    }
+    else if (node->nodeType == "ProcedureCall") {
+        ProcedureCallNode* pc = static_cast<ProcedureCallNode*>(node);
+        for (size_t i = 0; i < pc->args.size(); i++) {
+            printAST(pc->args[i], newPrefix, i + 1 == pc->args.size());
+        }
+    }
 }
 
 // ENTRY POINT

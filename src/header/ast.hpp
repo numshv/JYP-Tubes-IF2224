@@ -232,10 +232,7 @@ struct ProcedureDeclNode : ASTNode {
     ProcedureDeclNode(const string &n)
         : ASTNode("ProcedureDecl"), name(n), body(nullptr) {}
     
-    ~ProcedureDeclNode() {
-        for (auto p : params) delete p;
-        if (body) delete body;
-    }
+    ~ProcedureDeclNode();
 };
 
 struct FunctionDeclNode : ASTNode {
@@ -247,10 +244,7 @@ struct FunctionDeclNode : ASTNode {
     FunctionDeclNode(const string &n, const string &retType)
         : ASTNode("FunctionDecl"), name(n), returnType(retType), body(nullptr) {}
     
-    ~FunctionDeclNode() {
-        for (auto p : params) delete p;
-        if (body) delete body;
-    }
+    ~FunctionDeclNode();
 };
 
 struct BlockNode : ASTNode {
