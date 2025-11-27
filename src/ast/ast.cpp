@@ -36,6 +36,72 @@ static bool isToken(ParseNode* p, const string& prefix) {
 
 ASTNode* convert(ParseNode* p);
 
+static bool isArrayType(ParseNode* typeNode) {
+    if (!typeNode || typeNode->children.empty()) return false;
+    return has(typeNode->children[0], "<array-type>");
+}
+
+static string getTypeName(ParseNode* typeNode) {
+    if (!typeNode || typeNode->children.empty()) return "";
+    
+    ParseNode* child = typeNode->children[0];
+    
+    
+    if (isToken(child, "KEYWORD")) {
+        return getTokenText(child);
+    }
+    
+    // Array type: larik[...] dari <type>
+    if (has(child, "<array-type>")) {
+        string arrayType = "larik[";
+        
+        if (child->children.size() > 2 && has(child->children[2], "<range>")) {
+            ParseNode* rangeNode = child->children[2];
+            if (rangeNode->children.size() >= 3) {
+                arrayType += getTokenText(rangeNode->children[0]->children[0]); // start
+                arrayType += " .. ";
+                arrayType += getTokenText(rangeNode->children[2]->children[0]); // end
+            }
+        }
+        
+        arrayType += "] dari ";
+        
+        if (child->children.size() > 5) {
+            arrayType += getTypeName(child->children[5]);
+        }
+        
+        return arrayType;
+    }
+    
+    return "";
+}
+
+static ArrayTypeNode* buildArrayTypeNode(ParseNode* typeNode) {
+    if (!typeNode || typeNode->children.empty()) return nullptr;
+    
+    ParseNode* child = typeNode->children[0];
+    
+    if (!has(child, "<array-type>")) return nullptr;
+    
+    ASTNode* rangeStart = nullptr;
+    ASTNode* rangeEnd = nullptr;
+    string elementType = "";
+    
+    if (child->children.size() > 2 && has(child->children[2], "<range>")) {
+        ParseNode* rangeNode = child->children[2];
+        if (rangeNode->children.size() >= 3) {
+            rangeStart = convert(rangeNode->children[0]);
+            rangeEnd = convert(rangeNode->children[2]);
+        }
+    }
+    
+    if (child->children.size() > 5) {
+        elementType = getTypeName(child->children[5]);
+    }
+    
+    return new ArrayTypeNode(rangeStart, rangeEnd, elementType);
+}
+
 ASTNode* buildFactor(ParseNode* p) {
     if (!p || p->children.empty()) return nullptr;
     
@@ -201,6 +267,7 @@ ASTNode* convert(ParseNode* p) {
     if (has(p, "<program>")) {
         string name = getTokenText(p->children[0]->children[1]);
         ProgramNode* prog = new ProgramNode(name);
+        prog->declarations = new DeclarationsNode();
 
         // Parse declaration part
         if (p->children.size() > 1) {
@@ -208,24 +275,40 @@ ASTNode* convert(ParseNode* p) {
             
             for (auto c : declPart->children) {
                 if (has(c, "<var-declaration>")) {
-                    VarDeclNode* v = new VarDeclNode();
+                   
+                    vector<string> currentVarNames;
                     
-                    for (auto cc : c->children) {
+                    for (size_t i = 0; i < c->children.size(); i++) {
+                        auto cc = c->children[i];
+                        
                         if (has(cc, "<identifier-list>")) {
+                            currentVarNames.clear();
                             for (auto id : cc->children) {
                                 if (isToken(id, "IDENTIFIER")) {
-                                    v->names.push_back(getTokenText(id));
+                                    currentVarNames.push_back(getTokenText(id));
                                 }
                             }
                         }
                         else if (has(cc, "<type>")) {
-                            if (!cc->children.empty()) {
-                                v->typeName = getTokenText(cc->children[0]);
+                            for (const string& varName : currentVarNames) {
+                                VarDeclNode* v = new VarDeclNode();
+                                v->names.push_back(varName);
+                                
+                                // Check if array type
+                                if (isArrayType(cc)) {
+                                    v->arrayType = buildArrayTypeNode(cc);
+                                    v->typeName = ""; 
+                                } else {
+                                    v->typeName = getTypeName(cc);
+                                    v->arrayType = nullptr;
+                                }
+                                
+                                prog->declarations->declarations.push_back(v);
                             }
+                            
+                            currentVarNames.clear();
                         }
                     }
-                    
-                    prog->declarations.push_back(v);
                 }
                 else if (has(c, "<const-declaration>")) {
                     // Parse const declarations
@@ -254,7 +337,7 @@ ASTNode* convert(ParseNode* p) {
                             }
                             
                             if (constValue) {
-                                prog->declarations.push_back(new ConstDeclNode(constName, constValue));
+                                prog->declarations->declarations.push_back(new ConstDeclNode(constName, constValue));
                             }
                             
                             i += 4; // IDENTIFIER := value SEMICOLON
@@ -268,16 +351,26 @@ ASTNode* convert(ParseNode* p) {
                     for (size_t i = 1; i < c->children.size(); ) {
                         if (isToken(c->children[i], "IDENTIFIER")) {
                             string typeName = getTokenText(c->children[i]);
-                            string typeDef = "";
+                            TypeDeclNode* typeDecl = new TypeDeclNode(typeName, "");
                             
                             if (i + 2 < c->children.size() && has(c->children[i + 2], "<type-definition>")) {
                                 ParseNode* defNode = c->children[i + 2];
                                 if (!defNode->children.empty()) {
-                                    typeDef = getTokenText(defNode->children[0]);
+                                    ParseNode* typeNode = defNode->children[0];
+                                    
+                                    if (has(typeNode, "<type>")) {
+                                        if (isArrayType(typeNode)) {
+                                            typeDecl->arrayType = buildArrayTypeNode(typeNode);
+                                        } else {
+                                            typeDecl->definition = getTypeName(typeNode);
+                                        }
+                                    } else {
+                                        typeDecl->definition = getTokenText(typeNode);
+                                    }
                                 }
                             }
                             
-                            prog->declarations.push_back(new TypeDeclNode(typeName, typeDef));
+                            prog->declarations->declarations.push_back(typeDecl);
                             i += 4; // IDENTIFIER := type-definition SEMICOLON
                         } else {
                             i++;
@@ -287,7 +380,7 @@ ASTNode* convert(ParseNode* p) {
                 else if (has(c, "<subprogram-declaration>")) {
                     ASTNode* subprog = convert(c);
                     if (subprog) {
-                        prog->declarations.push_back(subprog);
+                        prog->declarations->declarations.push_back(subprog);
                     }
                 }
             }
@@ -659,63 +752,116 @@ void printAST(ASTNode* node, const string& prefix, bool isLast) {
     cout << node->nodeType;
     
     if (node->nodeType == "Number") {
-        cout << ": " << static_cast<NumberNode*>(node)->value;
+        cout << "(" << static_cast<NumberNode*>(node)->value << ")";
     }
     else if (node->nodeType == "Real") {
-        cout << ": " << static_cast<RealNode*>(node)->value;
+        cout << "(" << static_cast<RealNode*>(node)->value << ")";
     }
     else if (node->nodeType == "String") {
-        cout << ": \"" << static_cast<StringNode*>(node)->value << "\"";
+        cout << "(\"" << static_cast<StringNode*>(node)->value << "\"" << ")";
     }
     else if (node->nodeType == "Char") {
-        cout << ": '" << static_cast<CharNode*>(node)->value << "'";
+        cout << "('" << static_cast<CharNode*>(node)->value << "'" << ")";
     }
     else if (node->nodeType == "Boolean") {
-        cout << ": " << (static_cast<BoolNode*>(node)->value ? "true" : "false");
+        cout << "(" << (static_cast<BoolNode*>(node)->value ? "true" : "false") << ")";
     }
     else if (node->nodeType == "Var") {
-        cout << ": " << static_cast<VarNode*>(node)->name;
+        cout << "(" << static_cast<VarNode*>(node)->name << ")";
     }
     else if (node->nodeType == "ArrayAccess") {
         cout << ": " << static_cast<ArrayAccessNode*>(node)->arrayName;
     }
     else if (node->nodeType == "BinOp") {
-        cout << ": " << static_cast<BinOpNode*>(node)->op;
+        cout << "(" << static_cast<BinOpNode*>(node)->op << ")";
     }
     else if (node->nodeType == "UnaryOp") {
-        cout << ": " << static_cast<UnaryOpNode*>(node)->op;
+        cout << "(" << static_cast<UnaryOpNode*>(node)->op << ")";
     }
     else if (node->nodeType == "Program") {
-        cout << ": " << static_cast<ProgramNode*>(node)->name;
+        cout << "(name: " << static_cast<ProgramNode*>(node)->name << ")";
     }
     else if (node->nodeType == "VarDecl") {
         VarDeclNode* vd = static_cast<VarDeclNode*>(node);
-        cout << ": ";
-        for (size_t i = 0; i < vd->names.size(); i++) {
-            cout << vd->names[i];
-            if (i + 1 < vd->names.size()) cout << ", ";
+        cout << "(name: '" << vd->names[0] << "', type: ";
+        if (vd->arrayType) {
+            cout << "ArrayType)";
+        } else {
+            cout << "'" << vd->typeName << "')";
         }
-        cout << " : " << vd->typeName;
     }
     else if (node->nodeType == "ConstDecl") {
-        cout << ": " << static_cast<ConstDeclNode*>(node)->name;
+        ConstDeclNode* cd = static_cast<ConstDeclNode*>(node);
+        cout << " (name: " << cd->name << ", value: ";
+        
+        if (cd->value) {
+            cout << cd->value->nodeType << "(";
+            if (cd->value->nodeType == "Number") {
+                cout << static_cast<NumberNode*>(cd->value)->value;
+            } else if (cd->value->nodeType == "Real") {
+                cout << static_cast<RealNode*>(cd->value)->value;
+            } else if (cd->value->nodeType == "String") {
+                cout << "\"" << static_cast<StringNode*>(cd->value)->value << "\"";
+            } else if (cd->value->nodeType == "Char") {
+                cout << "'" << static_cast<CharNode*>(cd->value)->value << "'";
+            } else if (cd->value->nodeType == "Boolean") {
+                cout << (static_cast<BoolNode*>(cd->value)->value ? "true" : "false");
+            }
+            cout << ")";
+        } else {
+            cout << "null";
+        }
+        cout << ")";
     }
     else if (node->nodeType == "TypeDecl") {
-        cout << ": " << static_cast<TypeDeclNode*>(node)->name;
+        TypeDeclNode* td = static_cast<TypeDeclNode*>(node);
+        cout << "(name: '" << td->name << "', type: ";
+        if (td->arrayType) {
+            cout << "ArrayType)";
+        } else {
+            cout << "'" << td->definition << "')";
+        }
     }
     else if (node->nodeType == "ProcedureDecl") {
-        cout << ": " << static_cast<ProcedureDeclNode*>(node)->name;
+        ProcedureDeclNode* pd = static_cast<ProcedureDeclNode*>(node);
+        cout << "(name: '" << pd->name << "', params: [";
+        for (size_t i = 0; i < pd->params.size(); i++) {
+            ParamNode* param = pd->params[i];
+            if (i > 0) cout << ", ";
+            cout << "(";
+            for (size_t j = 0; j < param->names.size(); j++) {
+                if (j > 0) cout << ", ";
+                cout << param->names[j];
+            }
+            cout << " : " << param->typeName << ")";
+        }
+        cout << "])";
     }
     else if (node->nodeType == "FunctionDecl") {
         FunctionDeclNode* fd = static_cast<FunctionDeclNode*>(node);
-        cout << ": " << fd->name << " -> " << fd->returnType;
+        cout << "(name: '" << fd->name << "', params: [";
+        for (size_t i = 0; i < fd->params.size(); i++) {
+            ParamNode* param = fd->params[i];
+            if (i > 0) cout << ", ";
+            cout << "(";
+            for (size_t j = 0; j < param->names.size(); j++) {
+                if (j > 0) cout << ", ";
+                cout << param->names[j];
+            }
+            cout << " : " << param->typeName << ")";
+        }
+        cout << "], returnType: '" << fd->returnType << "')";
     }
     else if (node->nodeType == "ProcedureCall") {
-        cout << ": " << static_cast<ProcedureCallNode*>(node)->procName;
+        cout << "(name: " << static_cast<ProcedureCallNode*>(node)->procName << ")";
     }
     else if (node->nodeType == "For") {
         ForNode* fn = static_cast<ForNode*>(node);
         cout << ": " << fn->counter << " (" << (fn->ascending ? "ke" : "turun-ke") << ")";
+    }
+    else if (node->nodeType == "ArrayType") {
+        ArrayTypeNode* atn = static_cast<ArrayTypeNode*>(node);
+        cout << "(elementType: '" << atn->elementType << "')";
     }
     
     cout << endl;
@@ -724,13 +870,21 @@ void printAST(ASTNode* node, const string& prefix, bool isLast) {
     
     if (node->nodeType == "Program") {
         ProgramNode* prog = static_cast<ProgramNode*>(node);
-        size_t totalChildren = prog->declarations.size() + (prog->block ? 1 : 0);
+        size_t totalChildren = (prog->declarations ? 1 : 0) + (prog->block ? 1 : 0);
+        size_t count = 0;
         
-        for (size_t i = 0; i < prog->declarations.size(); i++) {
-            printAST(prog->declarations[i], newPrefix, i + 1 == totalChildren && !prog->block);
+        if (prog->declarations) {
+            count++;
+            printAST(prog->declarations, newPrefix, count == totalChildren);
         }
         if (prog->block) {
             printAST(prog->block, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "Declarations") {
+        DeclarationsNode* decls = static_cast<DeclarationsNode*>(node);
+        for (size_t i = 0; i < decls->declarations.size(); i++) {
+            printAST(decls->declarations[i], newPrefix, i + 1 == decls->declarations.size());
         }
     }
     else if (node->nodeType == "Block") {
@@ -748,67 +902,117 @@ void printAST(ASTNode* node, const string& prefix, bool isLast) {
         }
     }
     else if (node->nodeType == "VarDecl") {
-        // no child
+        VarDeclNode* vd = static_cast<VarDeclNode*>(node);
+        if (vd->arrayType) {
+            printAST(vd->arrayType, newPrefix, true);
+        }
     }
-    else if (node->nodeType == "ConstDecl") {
-        ConstDeclNode* cd = static_cast<ConstDeclNode*>(node);
-        if (cd->value) {
-            printAST(cd->value, newPrefix, true);
+    else if (node->nodeType == "TypeDecl") {
+        TypeDeclNode* td = static_cast<TypeDeclNode*>(node);
+        if (td->arrayType) {
+            printAST(td->arrayType, newPrefix, true);
         }
     }
     else if (node->nodeType == "ProcedureDecl") {
         ProcedureDeclNode* pd = static_cast<ProcedureDeclNode*>(node);
-        size_t totalChildren = pd->params.size() + (pd->body ? 1 : 0);
-        
-        for (size_t i = 0; i < pd->params.size(); i++) {
-            ParamNode* param = pd->params[i];
-            cout << newPrefix << (i + 1 == totalChildren && !pd->body ? "└── " : "├── ");
-            cout << "Param: ";
-            for (size_t j = 0; j < param->names.size(); j++) {
-                cout << param->names[j];
-                if (j + 1 < param->names.size()) cout << ", ";
-            }
-            cout << " : " << param->typeName << endl;
-        }
         if (pd->body) {
             printAST(pd->body, newPrefix, true);
         }
     }
     else if (node->nodeType == "FunctionDecl") {
         FunctionDeclNode* fd = static_cast<FunctionDeclNode*>(node);
-        size_t totalChildren = fd->params.size() + (fd->body ? 1 : 0);
-        
-        for (size_t i = 0; i < fd->params.size(); i++) {
-            ParamNode* param = fd->params[i];
-            cout << newPrefix << (i + 1 == totalChildren && !fd->body ? "└── " : "├── ");
-            cout << "Param: ";
-            for (size_t j = 0; j < param->names.size(); j++) {
-                cout << param->names[j];
-                if (j + 1 < param->names.size()) cout << ", ";
-            }
-            cout << " : " << param->typeName << endl;
-        }
         if (fd->body) {
             printAST(fd->body, newPrefix, true);
         }
     }
     else if (node->nodeType == "Assign") {
         AssignNode* an = static_cast<AssignNode*>(node);
-        if (an->target) printAST(an->target, newPrefix, !an->value);
-        if (an->value) printAST(an->value, newPrefix, true);
+        if (an->target) {
+            cout << newPrefix << (!an->value ? "└── " : "├── ") << "target: ";
+            if (an->target->nodeType == "Var") {
+                cout << "Var(" << static_cast<VarNode*>(an->target)->name << ")" << endl;
+            } else if (an->target->nodeType == "ArrayAccess") {
+                cout << "ArrayAccess: " << static_cast<ArrayAccessNode*>(an->target)->arrayName << endl;
+                if (static_cast<ArrayAccessNode*>(an->target)->index) {
+                    printAST(static_cast<ArrayAccessNode*>(an->target)->index, newPrefix + (!an->value ? "    " : "│   "), true);
+                }
+            } else {
+                cout << endl;
+                printAST(an->target, newPrefix + (!an->value ? "    " : "│   "), true);
+            }
+        }
+        if (an->value) {
+            cout << newPrefix << "└── value: ";
+            if (an->value->nodeType == "Number") {
+                cout << "Number(" << static_cast<NumberNode*>(an->value)->value << ")" << endl;
+            } else if (an->value->nodeType == "Real") {
+                cout << "Real(" << static_cast<RealNode*>(an->value)->value << ")" << endl;
+            } else if (an->value->nodeType == "String") {
+                cout << "String(" << static_cast<StringNode*>(an->value)->value << "\")" << endl;
+            } else if (an->value->nodeType == "Char") {
+                cout << "Char('" << static_cast<CharNode*>(an->value)->value << "')" << endl;
+            } else if (an->value->nodeType == "Boolean") {
+                cout << "Boolean(" << (static_cast<BoolNode*>(an->value)->value ? "true" : "false") << ")" << endl;
+            } else if (an->value->nodeType == "Var") {
+                cout << "Var(" << static_cast<VarNode*>(an->value)->name << ")" << endl;
+            } else {
+                cout << endl;
+                printAST(an->value, newPrefix + "    ", true);
+            }
+        }
     }
     else if (node->nodeType == "BinOp") {
         BinOpNode* bn = static_cast<BinOpNode*>(node);
-        if (bn->left) printAST(bn->left, newPrefix, !bn->right);
-        if (bn->right) printAST(bn->right, newPrefix, true);
+        if (bn->left) {
+            cout << newPrefix << (!bn->right ? "└── " : "├── ") << "left: ";
+            if (bn->left->nodeType == "Number") {
+                cout << "Number(" << static_cast<NumberNode*>(bn->left)->value << ")" << endl;
+            } else if (bn->left->nodeType == "Var") {
+                cout << "Var(" << static_cast<VarNode*>(bn->left)->name << ")" << endl;
+            } else {
+                cout << endl;
+                printAST(bn->left, newPrefix + (!bn->right ? "    " : "│   "), true);
+            }
+        }
+        if (bn->right) {
+            cout << newPrefix << "└── right: ";
+            if (bn->right->nodeType == "Number") {
+                cout << "Number(" << static_cast<NumberNode*>(bn->right)->value << ")" << endl;
+            } else if (bn->right->nodeType == "Var") {
+                cout << "Var(" << static_cast<VarNode*>(bn->right)->name << ")" << endl;
+            } else {
+                cout << endl;
+                printAST(bn->right, newPrefix + "    ", true);
+            }
+        }
     }
     else if (node->nodeType == "UnaryOp") {
         UnaryOpNode* un = static_cast<UnaryOpNode*>(node);
-        if (un->operand) printAST(un->operand, newPrefix, true);
+        if (un->operand) {
+            cout << newPrefix << "└── operand: ";
+            if (un->operand->nodeType == "Number") {
+                cout << "Number(" << static_cast<NumberNode*>(un->operand)->value << ")" << endl;
+            } else if (un->operand->nodeType == "Var") {
+                cout << "Var(" << static_cast<VarNode*>(un->operand)->name << ")" << endl;
+            } else {
+                cout << endl;
+                printAST(un->operand, newPrefix + "    ", true);
+            }
+        }
     }
     else if (node->nodeType == "ArrayAccess") {
         ArrayAccessNode* aan = static_cast<ArrayAccessNode*>(node);
-        if (aan->index) printAST(aan->index, newPrefix, true);
+        if (aan->index) {
+            cout << newPrefix << "└── index: ";
+            if (aan->index->nodeType == "Number") {
+                cout << "Number(" << static_cast<NumberNode*>(aan->index)->value << ")" << endl;
+            } else if (aan->index->nodeType == "Var") {
+                cout << "Var(" << static_cast<VarNode*>(aan->index)->name << ")" << endl;
+            } else {
+                cout << endl;
+                printAST(aan->index, newPrefix + "    ", true);
+            }
+        }
     }
     else if (node->nodeType == "If") {
         IfNode* ifn = static_cast<IfNode*>(node);
@@ -817,21 +1021,30 @@ void printAST(ASTNode* node, const string& prefix, bool isLast) {
         
         if (ifn->condition) {
             count++;
-            printAST(ifn->condition, newPrefix, count == childCount);
+            cout << newPrefix << (count == childCount ? "└── " : "├── ") << "condition: " << endl;
+            printAST(ifn->condition, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
         if (ifn->thenBranch) {
             count++;
-            printAST(ifn->thenBranch, newPrefix, count == childCount);
+            cout << newPrefix << (count == childCount ? "└── " : "├── ") << "thenBranch: " << endl;
+            printAST(ifn->thenBranch, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
         if (ifn->elseBranch) {
             count++;
-            printAST(ifn->elseBranch, newPrefix, count == childCount);
+            cout << newPrefix << (count == childCount ? "└── " : "├── ") << "elseBranch: " << endl;
+            printAST(ifn->elseBranch, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
     }
     else if (node->nodeType == "While") {
         WhileNode* wn = static_cast<WhileNode*>(node);
-        if (wn->condition) printAST(wn->condition, newPrefix, !wn->body);
-        if (wn->body) printAST(wn->body, newPrefix, true);
+        if (wn->condition) {
+            cout << newPrefix << (!wn->body ? "└── " : "├── ") << "condition: " << endl;
+            printAST(wn->condition, newPrefix + (!wn->body ? "    " : "│   "), true);
+        }
+        if (wn->body) {
+            cout << newPrefix << "└── body: " << endl;
+            printAST(wn->body, newPrefix + "    ", true);
+        }
     }
     else if (node->nodeType == "For") {
         ForNode* fn = static_cast<ForNode*>(node);
@@ -840,21 +1053,66 @@ void printAST(ASTNode* node, const string& prefix, bool isLast) {
         
         if (fn->start) {
             count++;
-            printAST(fn->start, newPrefix, count == childCount);
+            cout << newPrefix << (count == childCount ? "└── " : "├── ") << "start: " << endl;
+            printAST(fn->start, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
         if (fn->end) {
             count++;
-            printAST(fn->end, newPrefix, count == childCount);
+            cout << newPrefix << (count == childCount ? "└── " : "├── ") << "end: " << endl;
+            printAST(fn->end, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
         if (fn->body) {
             count++;
-            printAST(fn->body, newPrefix, count == childCount);
+            cout << newPrefix << (count == childCount ? "└── " : "├── ") << "body: " << endl;
+            printAST(fn->body, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
     }
     else if (node->nodeType == "ProcedureCall") {
         ProcedureCallNode* pc = static_cast<ProcedureCallNode*>(node);
         for (size_t i = 0; i < pc->args.size(); i++) {
-            printAST(pc->args[i], newPrefix, i + 1 == pc->args.size());
+            bool isLast = (i + 1 == pc->args.size());
+            cout << newPrefix << (isLast ? "└── " : "├── ") << "arg: ";
+            
+            if (pc->args[i]->nodeType == "Number") {
+                cout << "Number(" << static_cast<NumberNode*>(pc->args[i])->value << ")" << endl;
+            } else if (pc->args[i]->nodeType == "Var") {
+                cout << "Var(" << static_cast<VarNode*>(pc->args[i])->name << ")" << endl;
+            } else if (pc->args[i]->nodeType == "String") {
+                cout << "String(" << static_cast<StringNode*>(pc->args[i])->value << ")" << endl;
+            } else if (pc->args[i]->nodeType == "Boolean") {
+                cout << "Boolean(" << (static_cast<BoolNode*>(pc->args[i])->value ? "true" : "false") << ")" << endl;
+            } else {
+                cout << endl;
+                printAST(pc->args[i], newPrefix + (isLast ? "    " : "│   "), true);
+            }
+        }
+    }
+    else if (node->nodeType == "ArrayType") {
+        ArrayTypeNode* atn = static_cast<ArrayTypeNode*>(node);
+        size_t childCount = (atn->rangeStart ? 1 : 0) + (atn->rangeEnd ? 1 : 0);
+        size_t count = 0;
+        
+        if (atn->rangeStart) {
+            count++;
+            cout << newPrefix << (count == childCount ? "└── " : "├── ");
+            cout << "startRange: ";
+            if (atn->rangeStart->nodeType == "Number") {
+                cout << static_cast<NumberNode*>(atn->rangeStart)->value << endl;
+            } else {
+                cout << endl;
+                printAST(atn->rangeStart, newPrefix + (count == childCount ? "    " : "│   "), count == childCount);
+            }
+        }
+        if (atn->rangeEnd) {
+            count++;
+            cout << newPrefix << (count == childCount ? "└── " : "├── ");
+            cout << "endRange: ";
+            if (atn->rangeEnd->nodeType == "Number") {
+                cout << static_cast<NumberNode*>(atn->rangeEnd)->value << endl;
+            } else {
+                cout << endl;
+                printAST(atn->rangeEnd, newPrefix + (count == childCount ? "    " : "│   "), count == childCount);
+            }
         }
     }
 }

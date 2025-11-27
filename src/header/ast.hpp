@@ -175,11 +175,30 @@ struct ForNode : ASTNode {
 
 // Declarations
 
+struct ArrayTypeNode : ASTNode {
+    ASTNode* rangeStart;
+    ASTNode* rangeEnd;
+    string elementType;
+    
+    ArrayTypeNode(ASTNode* start, ASTNode* end, const string &elemType)
+        : ASTNode("ArrayType"), rangeStart(start), rangeEnd(end), elementType(elemType) {}
+    
+    ~ArrayTypeNode() {
+        delete rangeStart;
+        delete rangeEnd;
+    }
+};
+
 struct VarDeclNode : ASTNode {
     vector<string> names;
-    string typeName;
+    string typeName;          
+    ArrayTypeNode* arrayType; 
 
-    VarDeclNode() : ASTNode("VarDecl") {}
+    VarDeclNode() : ASTNode("VarDecl"), arrayType(nullptr) {}
+    
+    ~VarDeclNode() {
+        if (arrayType) delete arrayType;
+    }
 };
 
 struct ConstDeclNode : ASTNode {
@@ -196,23 +215,14 @@ struct ConstDeclNode : ASTNode {
 
 struct TypeDeclNode : ASTNode {
     string name;
-    string definition;  // Type name or definition
+    string definition;      
+    ArrayTypeNode* arrayType; 
     
     TypeDeclNode(const string &n, const string &def)
-        : ASTNode("TypeDecl"), name(n), definition(def) {}
-};
-
-struct ArrayTypeNode : ASTNode {
-    ASTNode* rangeStart;
-    ASTNode* rangeEnd;
-    string elementType;
+        : ASTNode("TypeDecl"), name(n), definition(def), arrayType(nullptr) {}
     
-    ArrayTypeNode(ASTNode* start, ASTNode* end, const string &elemType)
-        : ASTNode("ArrayType"), rangeStart(start), rangeEnd(end), elementType(elemType) {}
-    
-    ~ArrayTypeNode() {
-        delete rangeStart;
-        delete rangeEnd;
+    ~TypeDeclNode() {
+        if (arrayType) delete arrayType;
     }
 };
 
@@ -259,18 +269,28 @@ struct BlockNode : ASTNode {
     }
 };
 
+struct DeclarationsNode : ASTNode {
+    vector<ASTNode*> declarations;
+    
+    DeclarationsNode() : ASTNode("Declarations") {}
+    
+    ~DeclarationsNode() {
+        for (auto d : declarations) delete d;
+    }
+};
+
 // Program Root
 
 struct ProgramNode : ASTNode {
     string name;
-    vector<ASTNode*> declarations;
+    DeclarationsNode* declarations;
     BlockNode* block;
 
     ProgramNode(const string &n)
-        : ASTNode("Program"), name(n), block(nullptr) {}
+        : ASTNode("Program"), name(n), declarations(nullptr), block(nullptr) {}
     
     ~ProgramNode() {
-        for (auto d : declarations) delete d;
+        if (declarations) delete declarations;
         if (block) delete block;
     }
 };
