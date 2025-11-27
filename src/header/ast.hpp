@@ -159,14 +159,15 @@ struct WhileNode : ASTNode {
 };
 
 struct ForNode : ASTNode {
-    string counter;
+    ASTNode* counter;
     ASTNode *start, *end, *body;
     bool ascending; // ke / turun-ke
 
-    ForNode(const string &ctr, ASTNode* s, ASTNode* e, ASTNode* b, bool asc)
+    ForNode(ASTNode* ctr, ASTNode* s, ASTNode* e, ASTNode* b, bool asc)
         : ASTNode("For"), counter(ctr), start(s), end(e), body(b), ascending(asc) {}
     
     ~ForNode() {
+        delete counter;
         delete start;
         delete end;
         delete body;

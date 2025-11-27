@@ -648,7 +648,7 @@ ASTNode* convert(ParseNode* p) {
 
     // FOR STATEMENT
     if (has(p, "<for-statement>")) {
-        string counter = "";
+        ASTNode* counterNode = nullptr;
         ASTNode* start = nullptr;
         ASTNode* end = nullptr;
         ASTNode* body = nullptr;
@@ -662,7 +662,8 @@ ASTNode* convert(ParseNode* p) {
         }
         
         if (idx < p->children.size() && isToken(p->children[idx], "IDENTIFIER")) {
-            counter = getTokenText(p->children[idx]);
+            string counterName = getTokenText(p->children[idx]);
+            counterNode = new VarNode(counterName);
             idx++;
         }
         
@@ -699,7 +700,7 @@ ASTNode* convert(ParseNode* p) {
             body = convert(p->children[idx]);
         }
         
-        return new ForNode(counter, start, end, body, ascending);
+        return new ForNode(counterNode, start, end, body, ascending);
     }
 
     // PROCEDURE/FUNCTION CALL
@@ -856,8 +857,6 @@ void printAST(ASTNode* node, const string& prefix, bool isLast) {
         cout << "(name: " << static_cast<ProcedureCallNode*>(node)->procName << ")";
     }
     else if (node->nodeType == "For") {
-        ForNode* fn = static_cast<ForNode*>(node);
-        cout << ": " << fn->counter << " (" << (fn->ascending ? "ke" : "turun-ke") << ")";
     }
     else if (node->nodeType == "ArrayType") {
         ArrayTypeNode* atn = static_cast<ArrayTypeNode*>(node);
@@ -1048,24 +1047,45 @@ void printAST(ASTNode* node, const string& prefix, bool isLast) {
     }
     else if (node->nodeType == "For") {
         ForNode* fn = static_cast<ForNode*>(node);
-        size_t childCount = (fn->start ? 1 : 0) + (fn->end ? 1 : 0) + (fn->body ? 1 : 0);
+        size_t childCount = 5;  // counter, start, end, body, ascending
         size_t count = 0;
         
+        // counter
+        if (fn->counter) {
+            count++;
+            cout << newPrefix << (count == childCount ? "└── " : "├── ") << "counter: ";
+            if (fn->counter->nodeType == "Var") {
+                cout << "Var(" << static_cast<VarNode*>(fn->counter)->name << ")" << endl;
+            } else {
+                cout << endl;
+                printAST(fn->counter, newPrefix + (count == childCount ? "    " : "│   "), true);
+            }
+        }
+        
+        // start
         if (fn->start) {
             count++;
             cout << newPrefix << (count == childCount ? "└── " : "├── ") << "start: " << endl;
             printAST(fn->start, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
+        
+        // end
         if (fn->end) {
             count++;
             cout << newPrefix << (count == childCount ? "└── " : "├── ") << "end: " << endl;
             printAST(fn->end, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
+        
+        // body
         if (fn->body) {
             count++;
             cout << newPrefix << (count == childCount ? "└── " : "├── ") << "body: " << endl;
             printAST(fn->body, newPrefix + (count == childCount ? "    " : "│   "), true);
         }
+        
+        // ascending
+        count++;
+        cout << newPrefix << "└── ascending: " << (fn->ascending ? "true" : "false") << endl;
     }
     else if (node->nodeType == "ProcedureCall") {
         ProcedureCallNode* pc = static_cast<ProcedureCallNode*>(node);
