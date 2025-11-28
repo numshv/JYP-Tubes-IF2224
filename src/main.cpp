@@ -2,22 +2,74 @@
 #include "header/parser.hpp"
 #include "header/ast.hpp"  
 #include "header/atab.hpp"
+#include "header/btab.hpp"
 
-void visitAST(ASTNode* node) {
+void visitAST(ASTNode* node, int currentBlockIndex = 0) {
     if (!node) return;
     
-
+    // Jika ketemu Program Node - initialize btab
+    if (node->nodeType == "Program") {
+        ProgramNode* prog = static_cast<ProgramNode*>(node);
+        
+        cout << "\n>>> Found Program: " << prog->name << endl;
+        
+        // Block global sudah diinit, update nama program jika perlu
+        cout << ">>> Using global block (btab[0])" << endl;
+        
+        // Process declarations di level global
+        for (auto decl : prog->declarations) {
+            visitAST(decl, 0);  // 0 = global block
+        }
+        
+        // Process main block
+        if (prog->block) {
+            // Buat block baru untuk compound statement utama
+            int mainBlockIndex = createNewBlock();
+            enterBlock(mainBlockIndex);
+            
+            visitAST(prog->block, mainBlockIndex);
+            
+            exitBlock();
+        }
+        
+        return; 
+    }
+    
+    // Jika ketemu Block Node
+    if (node->nodeType == "Block") {
+        BlockNode* block = static_cast<BlockNode*>(node);
+        
+        cout << ">>> Processing Block at btab[" << currentBlockIndex << "]" << endl;
+        
+        // Process declarations dalam block ini
+        for (auto decl : block->declarations) {
+            visitAST(decl, currentBlockIndex);
+        }
+        
+        // Process statements
+        for (auto stmt : block->statements) {
+            visitAST(stmt, currentBlockIndex);
+        }
+        
+        return; 
+    }
+    
     // Jika ketemu VarDeclNode
     if (node->nodeType == "VarDecl") {
         VarDeclNode* varDecl = static_cast<VarDeclNode*>(node);
         
-        cout << ">>> Found VarDecl: ";
+        cout << ">>> Found VarDecl in block " << currentBlockIndex << ": ";
         for (const auto& name : varDecl->names) {
             cout << name << " ";
         }
         cout << "of type: " << varDecl->typeName << endl;
         
+        // Hitung ukuran variabel untuk update btab
+        int varCount = varDecl->names.size();
+        int varSize = 0;
+        
         // Cek apakah ada array type dalam children
+        bool isArray = false;
         for (auto child : varDecl->children) {
             if (child->nodeType == "ArrayType") {
                 ArrayTypeNode* arrayType = static_cast<ArrayTypeNode*>(child);
@@ -29,59 +81,77 @@ void visitAST(ASTNode* node) {
                 
                 if (atab_index >= 0) {
                     child->symbolIndex = atab_index;
+                    varSize = atab[atab_index].size;
+                    isArray = true;
                     
                     cout << "  >>> Array declared with atab index: " << atab_index << endl;
+                    cout << "  >>> Array size: " << varSize << " units" << endl;
                 } else {
                     cout << "  >>> Failed to create atab entry" << endl;
                 }
             }
         }
+        
+        // Jika bukan array, hitung ukuran berdasarkan tipe dasar
+        if (!isArray) {
+            int typeCode = getTypeCode(varDecl->typeName);
+            int singleVarSize = getTypeSize(typeCode);
+            varSize = singleVarSize * varCount;
+        }
+        
+        // Update vsze di btab untuk block saat ini
+        incrementBlockVsze(currentBlockIndex, varSize);
+        
+        // Update last identifier (simplified - dalam implementasi lengkap, 
+        // ini harus menunjuk ke tab entry)
+        // updateBlockLast(currentBlockIndex, tabIndex);
+        
+        return;
     }
     
-    if (node->nodeType == "Program") {
-        ProgramNode* prog = static_cast<ProgramNode*>(node);
+    // Jika ketemu ProcedureDecl atau FunctionDecl
+    if (node->nodeType == "ProcedureDecl" || node->nodeType == "FunctionDecl") {
+        cout << ">>> Found " << node->nodeType << endl;
         
-        for (auto decl : prog->declarations) {
-            visitAST(decl);
+        // Buat block baru untuk procedure/function
+        int procBlockIndex = createNewBlock();
+        enterBlock(procBlockIndex);
+        
+        // TODO: Process parameters dan update lpar, psze
+        // Contoh sederhana:
+        // for (auto param : proc->parameters) {
+        //     int paramSize = calculateParamSize(param);
+        //     incrementBlockPsze(procBlockIndex, paramSize);
+        // }
+        
+        // Process body
+        for (auto child : node->children) {
+            visitAST(child, procBlockIndex);
         }
         
-        if (prog->block) {
-            visitAST(prog->block);
-        }
-        
-        return; 
+        exitBlock();
+        return;
     }
     
-    if (node->nodeType == "Block") {
-        BlockNode* block = static_cast<BlockNode*>(node);
-        
-        for (auto decl : block->declarations) {
-            visitAST(decl);
-        }
-        
-        for (auto stmt : block->statements) {
-            visitAST(stmt);
-        }
-        
-        return; 
-    }
-    
+    // BinOp Node
     if (node->nodeType == "BinOp") {
         BinOpNode* binOp = static_cast<BinOpNode*>(node);
-        visitAST(binOp->left);
-        visitAST(binOp->right);
+        visitAST(binOp->left, currentBlockIndex);
+        visitAST(binOp->right, currentBlockIndex);
         return;
     }
     
+    // Assign Node
     if (node->nodeType == "Assign") {
         AssignNode* assign = static_cast<AssignNode*>(node);
-        visitAST(assign->target);
-        visitAST(assign->value);
+        visitAST(assign->target, currentBlockIndex);
+        visitAST(assign->value, currentBlockIndex);
         return;
     }
     
+    // Default: traverse children
     for (auto child : node->children) {
-        visitAST(child);
+        visitAST(child, currentBlockIndex);
     }
 }
 
@@ -134,22 +204,39 @@ int main(int argc, char* argv[]) {
     ASTNode* ast = ASTMain(parseTree);
 
     try {
-        atab.clear();
+        cout << "\n========== SEMANTIC ANALYSIS ==========\n";
         
-        // Visit AST untuk populate atab
-        visitAST(ast);
+        // Initialize symbol tables
+        atab.clear();
+        initializeBtab();  // Initialize btab dengan global block
+        
+        cout << "\n>>> Starting AST traversal...\n" << endl;
+        
+        // Visit AST untuk populate atab dan btab
+        visitAST(ast, 0);  // Start dari block 0 (global)
         
         // Print hasil
+        cout << "\n========== SYMBOL TABLES ==========\n";
+        
         if (!atab.empty()) {
             printAtab();
         } else {
             cout << "No arrays declared in this program.\n";
         }
         
+        printBtab();
+        
+        // Debug info untuk block tertentu jika diperlukan
+        if (btab.size() > 0) {
+            cout << "\n>>> Detailed info for global block:" << endl;
+            debugBlockInfo(0);
+        }
+        
     } catch (const exception& e) {
-        cerr << "Semantic analysis error: " << e.what() << endl;
+        cerr << "\nSemantic analysis error: " << e.what() << endl;
         return 1;
     }
 
+    cout << "\n========== SEMANTIC ANALYSIS COMPLETE ==========\n";
     return 0;
 }
