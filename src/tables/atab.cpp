@@ -15,6 +15,40 @@ void semanticWarning(const string& message) {
     cerr << "Semantic Warning: " << message << endl;
 }
 
+int determineIndexType(ASTNode* node) {
+    if (!node) return 0;
+
+    if (node->nodeType == "Number") return 1;
+    if (node->nodeType == "Real") return 2;
+    if (node->nodeType == "Boolean") return 3; 
+    if (node->nodeType == "Char") return 4;    
+    
+    return 0; 
+}
+
+int getOrdinalValue(ASTNode* node) {
+    if (!node) return 0;
+
+    if (node->nodeType == "Number") {
+        return static_cast<NumberNode*>(node)->value;
+    }
+    else if (node->nodeType == "Real") {
+        RealNode* realNode = static_cast<RealNode*>(node);
+        return static_cast<int>(realNode->value); 
+    }       
+    else if (node->nodeType == "Char") {
+        CharNode* charNode = static_cast<CharNode*>(node);
+        return (int)charNode->value; 
+    }
+    else if (node->nodeType == "Boolean") {
+        BoolNode* boolNode = static_cast<BoolNode*>(node);
+        return boolNode->value ? 1 : 0;
+    }
+
+    semanticError("Cannot determine ordinal value for node type: " + node->nodeType);
+    return 0;
+}
+
 int getTypeCode(const string& typeName) {
     static unordered_map<string, int> typeMap = {
         {"integer", 1},
@@ -77,32 +111,44 @@ int processArrayDeclaration(ArrayTypeNode* arrayTypeNode) {
         return -1;
     }
     
+    int startType = determineIndexType(arrayTypeNode->rangeStart);
+    int endType = determineIndexType(arrayTypeNode->rangeEnd);
+
+    if (startType == 0 || endType == 0) {
+        semanticError("Invalid index type. Array index must be Integer, Char, or Boolean.");
+        return -1;
+    }
+
+    if (startType != endType) {
+        semanticError("Array range type mismatch. Start is type " + to_string(startType) + 
+                      ", End is type " + to_string(endType));
+        return -1;
+    }
+
     AtabEntry entry;
     
-    entry.low = getLowerBound(arrayTypeNode->rangeStart);
-    entry.high = getUpperBound(arrayTypeNode->rangeEnd);
+    entry.xtyp = startType; 
+
+    entry.low = getOrdinalValue(arrayTypeNode->rangeStart);
+    entry.high = getOrdinalValue(arrayTypeNode->rangeEnd);
     
     if (entry.low > entry.high) {
         semanticError("Array lower bound (" + to_string(entry.low) + 
-                     ") > upper bound (" + to_string(entry.high) + ")");
+                      ") > upper bound (" + to_string(entry.high) + ")");
         return -1;
     }
     
-    // tipe indeks 
-    entry.xtyp = 1; // integer
-    
-    // tipe elemen
     entry.etyp = getTypeCode(arrayTypeNode->elementType);
-    
     if (entry.etyp == 0) {
         semanticError("Invalid array element type: " + arrayTypeNode->elementType);
         return -1;
     }
     
-    // hitung ukuran
     entry.elsz = getTypeSize(entry.etyp);
     entry.size = (entry.high - entry.low + 1) * entry.elsz;
     entry.eref = 0; 
+    
+    // TODO: nested loop arrays handling
     
     atab.push_back(entry);
     
