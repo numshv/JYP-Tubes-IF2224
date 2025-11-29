@@ -43,6 +43,7 @@
     "final_states": [
       "q_identifier",
       "q_number",
+      "q_real",
       "q_scientific",
       "q_char_lit",
       "q_string_lit",
@@ -76,11 +77,12 @@
         "program", "variabel", "mulai", "selesai", "jika", "maka", "selain-itu",
         "selama", "lakukan", "untuk", "ke", "turun-ke", "integer", "real",
         "boolean", "char", "larik", "dari", "prosedur", "fungsi",
-        "konstanta", "tipe", "true", "false", "kasus", "rekaman", "ulangi", "sampai"
+        "konstanta", "tipe", "kasus", "rekaman", "ulangi", "sampai"
 
     ],
     "logical_operators": ["dan", "atau", "tidak"],
-    "arithmetic_word_operators": ["bagi", "mod"]
+    "arithmetic_word_operators": ["bagi", "mod"],
+    "boolean_literals": ["benar", "salah"]
   },
 
   "transitions": [
@@ -124,6 +126,15 @@
         {"from": "q_scientific", "input": "digit", "to": "q_scientific"}
       ]
     },
+    {
+      "comment": "REAL NUMBER - digit+ '.' digit+",
+      "rules": [
+        {"from": "q_number", "input": ".", "to": "q_real_start"},
+        {"from": "q_real_start", "input": "digit", "to": "q_real"},
+        {"from": "q_real", "input": "digit", "to": "q_real"}
+      ]
+    },
+
     {
       "comment": "INVALID IDENTIFIER",
       "rules": [
@@ -199,6 +210,7 @@
   "state_token_map": {
     "q_identifier": "IDENTIFIER",
     "q_number": "NUMBER",
+    "q_real": "REAL_NUMBER",
     "q_scientific": "NUMBER",
     "q_char_lit": "CHAR_LITERAL",
     "q_string_lit": "STRING_LITERAL",

@@ -616,7 +616,12 @@ ParseNode* factor() {
                cur_tok.type == "STRING_LITERAL") {
         addChild(node, makeTokenNode(cur_tok));
         advance();
-    } else if (cur_tok.type == "KEYWORD" && (cur_tok.lexeme == "true" || cur_tok.lexeme == "false")) {
+    } 
+    else if (cur_tok.type == "REAL_NUMBER") {
+        addChild(node, makeTokenNode(cur_tok));
+        advance();
+    }
+    else if (cur_tok.type == "BOOLEAN") {
         addChild(node, makeTokenNode(cur_tok));
         advance();
     } else if (cur_tok.lexeme == "tidak") {
