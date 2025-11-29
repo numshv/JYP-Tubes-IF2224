@@ -352,6 +352,7 @@ void SemanticAnalyzer::visitProcedureDecl(ProcedureDeclNode* node) {
             paramEntry.nrm = param->isVar ? 1 : 0;
             paramEntry.lev = currentLevel;
             paramEntry.adr = paramSize;
+            paramEntry.initialized = true;
             
             tab.push_back(paramEntry);
             int paramIdx = tab.size() - 1;
