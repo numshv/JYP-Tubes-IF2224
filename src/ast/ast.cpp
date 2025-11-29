@@ -500,16 +500,142 @@ ASTNode* convert(ParseNode* p) {
         BlockNode* block = new BlockNode();
         
         for (auto child : p->children) {
+            // if (!child) continue;
             if (has(child, "<declaration-part>")) {
                 // Parse declarations
                 for (auto decl : child->children) {
                     if (has(decl, "<var-declaration>")) {
-                        ASTNode* varDecl = convert(decl);
-                        if (varDecl) block->declarations.push_back(varDecl);
+                        cerr << "[DEBUG] Processing var-declaration" << endl;
+                        // Parse variable declarations
+                        vector<string> currentVarNames;
+                        
+                        for (size_t i = 0; i < decl->children.size(); i++) {
+                            auto cc = decl->children[i];
+                            if (!cc) continue;
+                            
+                            if (has(cc, "<identifier-list>")) {
+                                currentVarNames.clear();
+                                for (auto id : cc->children) {
+                                    if (id && isToken(id, "IDENTIFIER")) {
+                                        currentVarNames.push_back(getTokenText(id));
+                                    }
+                                }
+                            }
+                            else if (has(cc, "<type>")) {
+                                for (const string& varName : currentVarNames) {
+                                    VarDeclNode* v = new VarDeclNode();
+                                    v->names.push_back(varName);
+                                    
+                                    // Check if array type
+                                    if (isArrayType(cc)) {
+                                        v->arrayType = buildArrayTypeNode(cc);
+                                        v->typeName = ""; 
+                                    } else {
+                              
+                                        v->typeName = getTypeName(cc);
+                                        v->arrayType = nullptr;
+                                    }
+                                    
+                                    block->declarations.push_back(v);
+                                }
+                                currentVarNames.clear();
+                            }
+                        }
                     }
                     else if (has(decl, "<const-declaration>")) {
-                        ASTNode* constDecl = convert(decl);
-                        if (constDecl) block->declarations.push_back(constDecl);
+                        for (size_t i = 1; i < decl->children.size(); ) {
+                            if (i >= decl->children.size()) break;
+                            
+                            ParseNode* current = decl->children[i];
+                            if (!current) {
+                                i++;
+                                continue;
+                            }
+                            
+                            if (isToken(current, "IDENTIFIER")) {
+                        
+                                if (i + 3 >= decl->children.size()) {
+                                    i++; 
+                                    continue;
+                                }
+                                
+                                ParseNode* assignOp = decl->children[i + 1];
+                                ParseNode* valueNode = decl->children[i + 2];
+                                ParseNode* semicolon = decl->children[i + 3];
+                                
+                         
+                                if (assignOp && isToken(assignOp, "ASSIGN_OPERATOR") &&
+                                    valueNode && semicolon && isToken(semicolon, "SEMICOLON")) {
+                                    
+                                    string constName = getTokenText(current);
+                                    ASTNode* constValue = convert(valueNode);
+                                    
+                                    if (constValue) {
+                                        block->declarations.push_back(new ConstDeclNode(constName, constValue));
+                                    }
+                                    
+                                    i += 4; 
+                                } else {
+                                    i++; 
+                                }
+                            } else {
+                                i++; 
+                            }
+                        }
+                    }
+                    else if (has(decl, "<type-declaration>")) {
+                     
+                        for (size_t i = 1; i < decl->children.size(); ) {
+                            if (i >= decl->children.size()) break;
+                            
+                            ParseNode* current = decl->children[i];
+                            if (!current) {
+                                i++;
+                                continue;
+                            }
+                            
+                            if (isToken(current, "IDENTIFIER")) {
+                          
+                                if (i + 3 >= decl->children.size()) {
+                                    i++;
+                                    continue;
+                                }
+                                
+                                ParseNode* assignOp = decl->children[i + 1];
+                                ParseNode* typeDefNode = decl->children[i + 2];
+                                ParseNode* semicolon = decl->children[i + 3];
+                                
+                                if (assignOp && isToken(assignOp, "ASSIGN_OPERATOR") &&
+                                    typeDefNode && has(typeDefNode, "<type-definition>") &&
+                                    semicolon && isToken(semicolon, "SEMICOLON")) {
+                                    
+                                    string typeName = getTokenText(current);
+                                    TypeDeclNode* typeDecl = new TypeDeclNode(typeName, "");
+                                    
+                                    if (!typeDefNode->children.empty()) {
+                                        ParseNode* typeNode = typeDefNode->children[0];
+                                        if (typeNode) {
+                                            if (has(typeNode, "<type>")) {
+                                                if (isArrayType(typeNode)) {
+                                                    typeDecl->arrayType = buildArrayTypeNode(typeNode);
+                                                } else {
+                                                    typeDecl->definition = getTypeName(typeNode);
+                                                }
+                                            } else {
+                                                typeDecl->definition = getTokenText(typeNode);
+                                            }
+                                        }
+                                    }
+                                    
+                                    block->declarations.push_back(typeDecl);
+                                    i += 4;
+                                } else {
+                                    i++;
+                                }
+                            } else {
+                                i++;
+                            }
+                        }
                     }
                 }
             }
@@ -518,7 +644,7 @@ ASTNode* convert(ParseNode* p) {
                 BlockNode* stmtBlock = dynamic_cast<BlockNode*>(convert(child));
                 if (stmtBlock) {
                     block->statements = stmtBlock->statements;
-                    stmtBlock->statements.clear(); // Buat prevent double delete
+                    stmtBlock->statements.clear(); // Prevent double delete
                     delete stmtBlock;
                 }
             }

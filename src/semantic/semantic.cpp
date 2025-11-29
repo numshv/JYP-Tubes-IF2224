@@ -38,6 +38,21 @@ string SemanticAnalyzer::inferType(ASTNode* node) {
         return "unknown";
     }
     
+    if (node->nodeType == "ProcedureCall") {
+        ProcedureCallNode* procNode = static_cast<ProcedureCallNode*>(node);
+        int idx = lookupIdentifier(procNode->procName);
+        if (idx > 0 && idx < (int)tab.size()) {
+            int objCode = tab[idx].obj;
+            if (objCode == OBJ_PROCEDURE) {
+                return "void";
+            } else if (objCode == OBJ_FUNCTION) {
+                int typeCode = tab[idx].type;
+                return getTypeName(typeCode);
+            }
+        }
+        return "unknown";
+    }
+    
     if (node->nodeType == "ArrayAccess") {
         ArrayAccessNode* arrayNode = static_cast<ArrayAccessNode*>(node);
         int idx = lookupIdentifier(arrayNode->arrayName);
@@ -106,7 +121,7 @@ void SemanticAnalyzer::visitProgram(ProgramNode* node) {
     if (!node) return;
     
     cout << "\n========== Semantic Analysis Started ==========\n";
-    cout << "Program: " << node->name << endl;
+    // cout << "Program: " << node->name << endl;
     
     TabEntry progEntry;
     progEntry.name = node->name;
@@ -213,7 +228,7 @@ void SemanticAnalyzer::visitVarDecl(VarDeclNode* node) {
         node->scopeLevel = currentLevel;
         node->dataType = node->arrayType ? "array" : node->typeName;
         
-        cout << "Variable '" << name << "' at tab[" << newIndex << "] link=" << previousVar << endl;
+        // cout << "Variable '" << name << "' at tab[" << newIndex << "] link=" << previousVar << endl;
     }
 }
 
@@ -372,11 +387,21 @@ void SemanticAnalyzer::visitProcedureDecl(ProcedureDeclNode* node) {
     }
     
     if (node->body) {
-        if (!node->body->declarations.empty()) {
-            DeclarationsNode declNode;
-            declNode.declarations = node->body->declarations;
-            visitDeclarations(&declNode);
+        // directly process declarations without creating temporary DeclarationsNode
+        for (ASTNode* decl : node->body->declarations) {
+            if (!decl) continue;
+            
+            if (decl->nodeType == "VarDecl") {
+                visitVarDecl(static_cast<VarDeclNode*>(decl));
+            }
+            else if (decl->nodeType == "ConstDecl") {
+                visitConstDecl(static_cast<ConstDeclNode*>(decl));
+            }
+            else if (decl->nodeType == "TypeDecl") {
+                visitTypeDecl(static_cast<TypeDeclNode*>(decl));
+            }
         }
+        
         // Process statements
         for (ASTNode* stmt : node->body->statements) {
             visitStatement(stmt);
@@ -462,11 +487,21 @@ void SemanticAnalyzer::visitFunctionDecl(FunctionDeclNode* node) {
     }
     
     if (node->body) {
-        if (!node->body->declarations.empty()) {
-            DeclarationsNode declNode;
-            declNode.declarations = node->body->declarations;
-            visitDeclarations(&declNode);
+        // this too
+        for (ASTNode* decl : node->body->declarations) {
+            if (!decl) continue;
+            
+            if (decl->nodeType == "VarDecl") {
+                visitVarDecl(static_cast<VarDeclNode*>(decl));
+            }
+            else if (decl->nodeType == "ConstDecl") {
+                visitConstDecl(static_cast<ConstDeclNode*>(decl));
+            }
+            else if (decl->nodeType == "TypeDecl") {
+                visitTypeDecl(static_cast<TypeDeclNode*>(decl));
+            }
         }
+        
         // Process statements
         for (ASTNode* stmt : node->body->statements) {
             visitStatement(stmt);
