@@ -1,6 +1,7 @@
 #include "atab.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <stdexcept>
 using namespace std;
 
 vector<AtabEntry> atab;
@@ -19,7 +20,8 @@ int getTypeCode(const string& typeName) {
         {"integer", 1},
         {"real", 2},
         {"boolean", 3},
-        {"char", 4}
+        {"char", 4},
+        {"array", 5}
     };
     
     auto it = typeMap.find(typeName);
@@ -108,9 +110,9 @@ int processArrayDeclaration(ArrayTypeNode* arrayTypeNode) {
 }
 
 void printAtab() {
-    cout << "\n========== ATAB (Array Table) ==========" << endl;
+    cout << "\n================== ATAB (Array Table) ========================" << endl;
     cout << "idx\txtyp\tetyp\teref\tlow\thigh\telsz\tsize" << endl;
-    cout << "-------------------------------------------------------" << endl;
+    cout << "--------------------------------------------------------------" << endl;
     
     for (size_t i = 0; i < atab.size(); i++) {
         cout << i << "\t"
@@ -123,7 +125,7 @@ void printAtab() {
              << atab[i].size << endl;
     }
     
-    cout << "==========================================\n" << endl;
+    cout << "==============================================================\n" << endl;
 }
 
 void debugArrayInfo(int atab_index) {

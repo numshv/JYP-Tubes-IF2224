@@ -1,6 +1,7 @@
 #include "header/lexer.hpp"
 #include "header/parser.hpp"
-#include "header/ast.hpp"  
+#include "header/ast.hpp"
+#include "header/semantic.hpp"
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -49,5 +50,14 @@ int main(int argc, char* argv[]) {
 
     ParseNode* parseTree = parser_main(toks);
     ASTNode* ast = ASTMain(parseTree);
+    
+    if (ast) {
+        semanticAnalysis(ast);
+    
+        printSymbolTables();
+        
+        delete ast;
+    }
+    
     return 0;
 }

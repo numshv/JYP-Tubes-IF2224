@@ -24,8 +24,6 @@ void initializeBtab() {
     // Inisialisasi display untuk level 0
     display.push_back(0);  // display[0] = block index 0 (global)
     currentLevel = 0;
-    
-    cout << "BTAB initialized with global block at index 0" << endl;
 }
 
 // Membuat block baru dan return indeksnya
@@ -39,7 +37,7 @@ int createNewBlock() {
     btab.push_back(newBlock);
     int newIndex = btab.size() - 1;
     
-    cout << "Created new block at index " << newIndex << endl;
+    // cout << "Created new block at index " << newIndex << endl;
     return newIndex;
 }
 
@@ -54,14 +52,14 @@ void enterBlock(int blockIndex) {
     
     display[currentLevel] = blockIndex;
     
-    cout << "Entered block " << blockIndex << " at level " << currentLevel << endl;
+    // cout << "Entered block " << blockIndex << " at level " << currentLevel << endl;
 }
 
 // Keluar dari block (decrement level)
 void exitBlock() {
     if (currentLevel > 0) {
-        cout << "Exited block " << display[currentLevel] 
-             << " from level " << currentLevel << endl;
+        // cout << "Exited block " << display[currentLevel] 
+        //      << " from level " << currentLevel << endl;
         currentLevel--;
     } else {
         cerr << "Warning: Cannot exit from global level" << endl;
@@ -80,8 +78,8 @@ int getCurrentBlock() {
 void updateBlockLast(int blockIndex, int lastIdentifier) {
     if (blockIndex >= 0 && blockIndex < (int)btab.size()) {
         btab[blockIndex].last = lastIdentifier;
-        cout << "Updated btab[" << blockIndex << "].last = " 
-             << lastIdentifier << endl;
+        // cout << "Updated btab[" << blockIndex << "].last = " 
+        //      << lastIdentifier << endl;
     } else {
         cerr << "Error: Invalid block index " << blockIndex << endl;
     }
@@ -91,8 +89,8 @@ void updateBlockLast(int blockIndex, int lastIdentifier) {
 void updateBlockLpar(int blockIndex, int lastParameter) {
     if (blockIndex >= 0 && blockIndex < (int)btab.size()) {
         btab[blockIndex].lpar = lastParameter;
-        cout << "Updated btab[" << blockIndex << "].lpar = " 
-             << lastParameter << endl;
+        // cout << "Updated btab[" << blockIndex << "].lpar = " 
+        //      << lastParameter << endl;
     } else {
         cerr << "Error: Invalid block index " << blockIndex << endl;
     }
@@ -102,8 +100,8 @@ void updateBlockLpar(int blockIndex, int lastParameter) {
 void updateBlockPsze(int blockIndex, int parameterSize) {
     if (blockIndex >= 0 && blockIndex < (int)btab.size()) {
         btab[blockIndex].psze = parameterSize;
-        cout << "Updated btab[" << blockIndex << "].psze = " 
-             << parameterSize << endl;
+        // cout << "Updated btab[" << blockIndex << "].psze = " 
+        //      << parameterSize << endl;
     } else {
         cerr << "Error: Invalid block index " << blockIndex << endl;
     }
@@ -113,8 +111,8 @@ void updateBlockPsze(int blockIndex, int parameterSize) {
 void updateBlockVsze(int blockIndex, int variableSize) {
     if (blockIndex >= 0 && blockIndex < (int)btab.size()) {
         btab[blockIndex].vsze = variableSize;
-        cout << "Updated btab[" << blockIndex << "].vsze = " 
-             << variableSize << endl;
+        // cout << "Updated btab[" << blockIndex << "].vsze = " 
+        //      << variableSize << endl;
     } else {
         cerr << "Error: Invalid block index " << blockIndex << endl;
     }
@@ -124,8 +122,8 @@ void updateBlockVsze(int blockIndex, int variableSize) {
 void incrementBlockVsze(int blockIndex, int additionalSize) {
     if (blockIndex >= 0 && blockIndex < (int)btab.size()) {
         btab[blockIndex].vsze += additionalSize;
-        cout << "Incremented btab[" << blockIndex << "].vsze by " 
-             << additionalSize << " (now = " << btab[blockIndex].vsze << ")" << endl;
+        // cout << "Incremented btab[" << blockIndex << "].vsze by " 
+        //      << additionalSize << " (now = " << btab[blockIndex].vsze << ")" << endl;
     } else {
         cerr << "Error: Invalid block index " << blockIndex << endl;
     }
@@ -135,8 +133,8 @@ void incrementBlockVsze(int blockIndex, int additionalSize) {
 void incrementBlockPsze(int blockIndex, int additionalSize) {
     if (blockIndex >= 0 && blockIndex < (int)btab.size()) {
         btab[blockIndex].psze += additionalSize;
-        cout << "Incremented btab[" << blockIndex << "].psze by " 
-             << additionalSize << " (now = " << btab[blockIndex].psze << ")" << endl;
+        // cout << "Incremented btab[" << blockIndex << "].psze by " 
+        //      << additionalSize << " (now = " << btab[blockIndex].psze << ")" << endl;
     } else {
         cerr << "Error: Invalid block index " << blockIndex << endl;
     }
@@ -146,7 +144,7 @@ void incrementBlockPsze(int blockIndex, int additionalSize) {
 void printBtab() {
     cout << "\n========== BTAB (Block Table) ==========" << endl;
     cout << "idx\tlast\tlpar\tpsze\tvsze" << endl;
-    cout << "---------------------------------------" << endl;
+    cout << "----------------------------------------" << endl;
     
     for (size_t i = 0; i < btab.size(); i++) {
         cout << i << "\t"
@@ -157,12 +155,12 @@ void printBtab() {
     }
     
     cout << "========================================" << endl;
-    cout << "Current Level: " << currentLevel << endl;
-    cout << "Display Stack: ";
-    for (size_t i = 0; i < display.size(); i++) {
-        cout << "L" << i << "->B" << display[i] << " ";
-    }
-    cout << "\n========================================\n" << endl;
+    // cout << "Current Level: " << currentLevel << endl;
+    // cout << "Display Stack: ";
+    // for (size_t i = 0; i < display.size(); i++) {
+    //     cout << "L" << i << "->B" << display[i] << " ";
+    // }
+    // cout << "\n========================================\n" << endl;
 }
 
 // Debug info untuk block tertentu

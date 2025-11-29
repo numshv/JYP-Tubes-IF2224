@@ -5,6 +5,57 @@
 
 vector<TabEntry> tab;
 
+void initializeTab(){
+    if(!tab.empty()) return;
+    tab.reserve(256);
+
+    vector<string> keywords = {
+        "dan",          // AND
+        "larik",        // ARRAY
+        "mulai",        // BEGIN
+        "kasus",        // CASE
+        "konstanta",    // CONST
+        "bagi",         // DIV
+        "turun-ke",     // DOWNTO
+        "lakukan",      // DO
+        "selain-itu",   // ELSE
+        "selesai",      // END
+        "untuk",        // FOR
+        "fungsi",       // FUNCTION
+        "jika",         // IF
+        "mod",          // MOD
+        "tidak",        // NOT
+        "dari",         // OF
+        "atau",         // OR
+        "prosedur",     // PROCEDURE
+        "program",      // PROGRAM
+        "rekaman",      // RECORD
+        "ulangi",       // REPEAT
+        "string",       // STRING
+        "maka",         // THEN
+        "ke",           // TO
+        "tipe",         // TYPE
+        "sampai",       // UNTIL
+        "variabel",     // VAR
+        "selama",       // WHILE
+        "packed"        // PACKED
+    };
+    
+    for (const string& kw : keywords) {
+        TabEntry e;
+        e.name = kw;
+        e.link = 0;
+        e.obj = 0;  
+        e.type = 0;
+        e.ref = 0;
+        e.nrm = 1;  
+        e.lev = 0;
+        e.adr = 0;
+        e.initialized = false;
+        tab.push_back(e);
+    }
+}
+
 bool isDuplicateInCurrentBlock(const string& name){
     if(display.empty()) return false;
 
@@ -20,13 +71,6 @@ bool isDuplicateInCurrentBlock(const string& name){
         idx = tab[idx].link;
     }
     return false;
-}
-
-void initializeTab(){
-    if(!tab.empty()) return;
-    tab.reserve(256);
-
-    // TODO: initialize reserve words
 }
 
 int insertIdentifier(const string& name, int obj, int type, int ref, int nrm, int adr){
@@ -64,6 +108,7 @@ int insertIdentifier(const string& name, int obj, int type, int ref, int nrm, in
     e.nrm = nrm;
     e.lev = currentLevel;
     e.adr = adr;
+    e.initialized = (obj == OBJ_CONSTANT);
 
     int newIndex = (int)tab.size();
     tab.push_back(e);
@@ -75,6 +120,14 @@ int insertIdentifier(const string& name, int obj, int type, int ref, int nrm, in
 int lookupIdentifier(const string& name){
     initializeTab();
 
+    // reserved words
+    for(size_t i = 0; i < 29 && i < tab.size(); i++){
+        if(tab[i].name == name){
+            return i;  
+        }
+    }
+
+    // user-defined
     for(int lv = currentLevel; lv>=0; --lv){
         if(lv >= (int)display.size()) continue;
         int block = display[lv];
@@ -85,6 +138,28 @@ int lookupIdentifier(const string& name){
             if(tab[idx].name == name) return idx;
             idx = tab[idx].link;
         }
+    }
+
+    // predefined procedures
+    if(name == "writeln" || name == "write" || name == "readln" || name == "read"){
+        for(size_t i = 29; i < tab.size(); i++){
+            if(tab[i].name == name && tab[i].nrm == 1 && tab[i].obj == OBJ_PROCEDURE){
+                return i;  
+            }
+        }
+        
+        TabEntry e;
+        e.name = name;
+        e.link = 0;
+        e.obj = OBJ_PROCEDURE;
+        e.type = 0;
+        e.ref = 0;
+        e.nrm = 1; 
+        e.lev = 0;
+        e.adr = 0;
+        e.initialized = false;
+        tab.push_back(e);
+        return tab.size() - 1;
     }
 
     return 0;
@@ -100,20 +175,49 @@ void closeScope(){
 }
 
 void printTab(){
-    cout << "\n====================== TAB  =========================" << endl;
-    cout << "identifiers\tlink\tobj\ttype\tref\tnrm\tlev\tadr" << endl;
-    cout << "-------------------------------------------------------" << endl;
+    cout << "\n================================ TAB (Symbol Table) =====================================" << endl;
+    cout << "idx\tid\t\t\tobj\ttype\tref\tnrm\tlev\tadr\tlink" << endl;
+    cout << "-----------------------------------------------------------------------------------------" << endl;
     
     for (size_t i = 0; i < tab.size(); i++) {
-        cout << tab[i].name << "\t"
-             << tab[i].link << "\t"
+        cout << i << "\t";
+        
+        string name = tab[i].name;
+        if (name.length() < 16) {
+            cout << name;
+            for (size_t j = name.length(); j < 16; j++) cout << " ";
+        } else {
+            cout << name.substr(0, 15) << ".";
+        }
+        
+        cout << "\t"
              << tab[i].obj << "\t"
              << tab[i].type << "\t"
              << tab[i].ref << "\t"
              << tab[i].nrm << "\t"
              << tab[i].lev << "\t"
-             << tab[i].adr << endl;
+             << tab[i].adr << "\t"
+             << tab[i].link << endl;
     }
     
-    cout << "==========================================\n" << endl;
+    cout << "=========================================================================================\n" << endl;
+}
+
+void debugTabEntry(int index) {
+    if (index < 0 || index >= (int)tab.size()) {
+        cout << "Invalid tab index: " << index << endl;
+        return;
+    }
+    
+    TabEntry e = tab[index];
+    cout << "=== Tab Entry Info (tab[" << index << "]) ===" << endl;
+    cout << "Name: " << e.name << endl;
+    cout << "Link: " << e.link << endl;
+    cout << "Object: " << e.obj << endl;
+    cout << "Type: " << e.type << endl;
+    cout << "Reference: " << e.ref << endl;
+    cout << "Normal param: " << e.nrm << endl;
+    cout << "Level: " << e.lev << endl;
+    cout << "Address: " << e.adr << endl;
+    cout << "=======================================" << endl;
 }

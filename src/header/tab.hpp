@@ -22,10 +22,12 @@ struct TabEntry {
     int nrm;
     int lev;
     int adr;
+    bool initialized;
 };
 
 extern vector<TabEntry> tab;
 
+void initializeTab();
 bool isDuplicateInCurrentBlock(const string& name);
 
 int insertIdentifier(const string& name, int obj, int type, int ref, int nrm, int adr);
