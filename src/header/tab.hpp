@@ -6,11 +6,12 @@
 using namespace std;
 
 enum ObjectClass {
-    OBJ_CONSTANT,
-    OBJ_VARIABLE,
-    OBJ_TYPE,
-    OBJ_PROCEDURE,
-    OBJ_FUNCTION
+    OBJ_PROGRAM = 0,
+    OBJ_CONSTANT = 1,
+    OBJ_VARIABLE = 2,
+    OBJ_TYPE = 3,
+    OBJ_PROCEDURE = 4,
+    OBJ_FUNCTION = 5
 };
 
 struct TabEntry {

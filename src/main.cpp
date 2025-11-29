@@ -21,9 +21,11 @@ int main(int argc, char* argv[]) {
     unordered_set<string> keywords;
     unordered_set<string> logical_ops;
     unordered_set<string> arith_word_ops;
+    unordered_set<string> boolean_literals;
     for (auto &kw : rules["keyword_lookup"]["keywords"]) keywords.insert(kw);
     for (auto &kw : rules["keyword_lookup"]["logical_operators"]) logical_ops.insert(kw);
     for (auto &kw : rules["keyword_lookup"]["arithmetic_word_operators"]) arith_word_ops.insert(kw);
+    for (auto &kw : rules["keyword_lookup"]["boolean_literals"]) boolean_literals.insert(kw);
 
     // Read Pascal 
     ifstream f(argv[1]);
@@ -32,7 +34,7 @@ int main(int argc, char* argv[]) {
 
     // Run DFA
     cout << "\n========== Generated Token ==========\n";
-    vector<Token> toks = runDFA(input, rules, keywords, logical_ops, arith_word_ops);
+    vector<Token> toks = runDFA(input, rules, keywords, logical_ops, arith_word_ops, boolean_literals);
 
     bool hasError = false;
     for (auto &t : toks) {
@@ -48,13 +50,15 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    ParseNode* parseTree = parser_main(toks);
+    ParseNode* parseTree = parser_main(toks); 
     ASTNode* ast = ASTMain(parseTree);
     
     if (ast) {
         semanticAnalysis(ast);
     
         printSymbolTables();
+
+        // printDecoratedASTTree(ast);
         
         delete ast;
     }

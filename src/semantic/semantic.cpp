@@ -735,13 +735,292 @@ bool SemanticAnalyzer::analyze(ASTNode* root) {
     }
 }
 
+string SemanticAnalyzer::getTypeName(int typeCode) {
+    switch(typeCode) {
+        case 1: return "integer";
+        case 2: return "real";
+        case 3: return "boolean";
+        case 4: return "char";
+        case 5: return "array";
+        default: return "unknown";
+    }
+}
+
+string SemanticAnalyzer::getObjectName(int objCode) {
+    switch(objCode) {
+        case 0: return "program";
+        case 1: return "constant";
+        case 2: return "variable";
+        case 3: return "type";
+        case 4: return "procedure";
+        case 5: return "function";
+        default: return "unknown";
+    }
+}
+
 void SemanticAnalyzer::printDecoratedAST(ASTNode* node, const string& prefix, bool isLast) {
-    // TODO: Implementation can be added later if needed
+    if (!node) return;
+    
+    cout << prefix;
+    cout << (isLast ? "└── " : "├── ");
+    
+    // Print node type
+    cout << node->nodeType;
+    
+    // Print basic info
+    if (node->nodeType == "Number") {
+        cout << "(" << static_cast<NumberNode*>(node)->value << ")";
+    }
+    else if (node->nodeType == "Real") {
+        cout << "(" << static_cast<RealNode*>(node)->value << ")";
+    }
+    else if (node->nodeType == "String") {
+        cout << "(\"" << static_cast<StringNode*>(node)->value << "\")";
+    }
+    else if (node->nodeType == "Char") {
+        cout << "('" << static_cast<CharNode*>(node)->value << "')";
+    }
+    else if (node->nodeType == "Boolean") {
+        cout << "(" << (static_cast<BoolNode*>(node)->value ? "true" : "false") << ")";
+    }
+    else if (node->nodeType == "Var") {
+        cout << "('" << static_cast<VarNode*>(node)->name << "')";
+    }
+    else if (node->nodeType == "ArrayAccess") {
+        cout << ": " << static_cast<ArrayAccessNode*>(node)->arrayName;
+    }
+    else if (node->nodeType == "BinOp") {
+        cout << "('" << static_cast<BinOpNode*>(node)->op << "')";
+    }
+    else if (node->nodeType == "UnaryOp") {
+        cout << "('" << static_cast<UnaryOpNode*>(node)->op << "')";
+    }
+    else if (node->nodeType == "Program") {
+        cout << "(name: '" << static_cast<ProgramNode*>(node)->name << "')";
+    }
+    else if (node->nodeType == "VarDecl") {
+        VarDeclNode* vd = static_cast<VarDeclNode*>(node);
+        cout << "(name: '" << vd->names[0] << "')";
+    }
+    else if (node->nodeType == "ConstDecl") {
+        ConstDeclNode* cd = static_cast<ConstDeclNode*>(node);
+        cout << "(name: '" << cd->name << "')";
+    }
+    else if (node->nodeType == "TypeDecl") {
+        TypeDeclNode* td = static_cast<TypeDeclNode*>(node);
+        cout << "(name: '" << td->name << "')";
+    }
+    else if (node->nodeType == "ProcedureDecl") {
+        ProcedureDeclNode* pd = static_cast<ProcedureDeclNode*>(node);
+        cout << "(name: '" << pd->name << "')";
+    }
+    else if (node->nodeType == "FunctionDecl") {
+        FunctionDeclNode* fd = static_cast<FunctionDeclNode*>(node);
+        cout << "(name: '" << fd->name << "')";
+    }
+    else if (node->nodeType == "ProcedureCall") {
+        cout << "(name: '" << static_cast<ProcedureCallNode*>(node)->procName << "')";
+    }
+    
+    // Print decorations
+    cout << " → ";
+    
+    // Print tab_index if available
+    if (node->symbolIndex >= 0) {
+        cout << "tab_index:" << node->symbolIndex;
+        
+        // Print detailed info from symbol table
+        if (node->symbolIndex < (int)tab.size()) {
+            TabEntry& entry = tab[node->symbolIndex];
+            cout << ", obj:" << getObjectName(entry.obj);
+        }
+        cout << ", ";
+    }
+    
+    // Print type
+    if (!node->dataType.empty()) {
+        cout << "type:'" << node->dataType << "'";
+    } else {
+        cout << "type:void";
+    }
+    
+    // Print level
+    if (node->scopeLevel >= 0) {
+        cout << ", lev:" << node->scopeLevel;
+    }
+    
+    cout << endl;
+    
+    string newPrefix = prefix + (isLast ? "    " : "│   ");
+    
+    // Traverse children based on node type
+    if (node->nodeType == "Program") {
+        ProgramNode* prog = static_cast<ProgramNode*>(node);
+        size_t totalChildren = (prog->declarations ? 1 : 0) + (prog->block ? 1 : 0);
+        size_t count = 0;
+        
+        if (prog->declarations) {
+            count++;
+            printDecoratedAST(prog->declarations, newPrefix, count == totalChildren);
+        }
+        if (prog->block) {
+            printDecoratedAST(prog->block, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "Declarations") {
+        DeclarationsNode* decls = static_cast<DeclarationsNode*>(node);
+        for (size_t i = 0; i < decls->declarations.size(); i++) {
+            printDecoratedAST(decls->declarations[i], newPrefix, i + 1 == decls->declarations.size());
+        }
+    }
+    else if (node->nodeType == "Block") {
+        BlockNode* block = static_cast<BlockNode*>(node);
+        size_t totalChildren = block->declarations.size() + block->statements.size();
+        size_t count = 0;
+        
+        for (size_t i = 0; i < block->declarations.size(); i++) {
+            count++;
+            printDecoratedAST(block->declarations[i], newPrefix, count == totalChildren);
+        }
+        for (size_t i = 0; i < block->statements.size(); i++) {
+            count++;
+            printDecoratedAST(block->statements[i], newPrefix, count == totalChildren);
+        }
+    }
+    else if (node->nodeType == "VarDecl") {
+        VarDeclNode* vd = static_cast<VarDeclNode*>(node);
+        if (vd->arrayType) {
+            printDecoratedAST(vd->arrayType, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "TypeDecl") {
+        TypeDeclNode* td = static_cast<TypeDeclNode*>(node);
+        if (td->arrayType) {
+            printDecoratedAST(td->arrayType, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "ProcedureDecl") {
+        ProcedureDeclNode* pd = static_cast<ProcedureDeclNode*>(node);
+        if (pd->body) {
+            printDecoratedAST(pd->body, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "FunctionDecl") {
+        FunctionDeclNode* fd = static_cast<FunctionDeclNode*>(node);
+        if (fd->body) {
+            printDecoratedAST(fd->body, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "Assign") {
+        AssignNode* an = static_cast<AssignNode*>(node);
+        if (an->target) {
+            printDecoratedAST(an->target, newPrefix, !an->value);
+        }
+        if (an->value) {
+            printDecoratedAST(an->value, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "BinOp") {
+        BinOpNode* bn = static_cast<BinOpNode*>(node);
+        if (bn->left) {
+            printDecoratedAST(bn->left, newPrefix, !bn->right);
+        }
+        if (bn->right) {
+            printDecoratedAST(bn->right, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "UnaryOp") {
+        UnaryOpNode* un = static_cast<UnaryOpNode*>(node);
+        if (un->operand) {
+            printDecoratedAST(un->operand, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "ArrayAccess") {
+        ArrayAccessNode* aan = static_cast<ArrayAccessNode*>(node);
+        if (aan->index) {
+            printDecoratedAST(aan->index, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "If") {
+        IfNode* ifn = static_cast<IfNode*>(node);
+        size_t childCount = (ifn->condition ? 1 : 0) + (ifn->thenBranch ? 1 : 0) + (ifn->elseBranch ? 1 : 0);
+        size_t count = 0;
+        
+        if (ifn->condition) {
+            count++;
+            printDecoratedAST(ifn->condition, newPrefix, count == childCount);
+        }
+        if (ifn->thenBranch) {
+            count++;
+            printDecoratedAST(ifn->thenBranch, newPrefix, count == childCount);
+        }
+        if (ifn->elseBranch) {
+            count++;
+            printDecoratedAST(ifn->elseBranch, newPrefix, count == childCount);
+        }
+    }
+    else if (node->nodeType == "While") {
+        WhileNode* wn = static_cast<WhileNode*>(node);
+        if (wn->condition) {
+            printDecoratedAST(wn->condition, newPrefix, !wn->body);
+        }
+        if (wn->body) {
+            printDecoratedAST(wn->body, newPrefix, true);
+        }
+    }
+    else if (node->nodeType == "For") {
+        ForNode* fn = static_cast<ForNode*>(node);
+        size_t childCount = 4; // counter, start, end, body
+        size_t count = 0;
+        
+        if (fn->counter) {
+            count++;
+            printDecoratedAST(fn->counter, newPrefix, count == childCount);
+        }
+        if (fn->start) {
+            count++;
+            printDecoratedAST(fn->start, newPrefix, count == childCount);
+        }
+        if (fn->end) {
+            count++;
+            printDecoratedAST(fn->end, newPrefix, count == childCount);
+        }
+        if (fn->body) {
+            count++;
+            printDecoratedAST(fn->body, newPrefix, count == childCount);
+        }
+    }
+    else if (node->nodeType == "ProcedureCall") {
+        ProcedureCallNode* pc = static_cast<ProcedureCallNode*>(node);
+        for (size_t i = 0; i < pc->args.size(); i++) {
+            bool isLast = (i + 1 == pc->args.size());
+            printDecoratedAST(pc->args[i], newPrefix, isLast);
+        }
+    }
+    else if (node->nodeType == "ArrayType") {
+        ArrayTypeNode* atn = static_cast<ArrayTypeNode*>(node);
+        size_t childCount = (atn->rangeStart ? 1 : 0) + (atn->rangeEnd ? 1 : 0);
+        size_t count = 0;
+        
+        if (atn->rangeStart) {
+            count++;
+            printDecoratedAST(atn->rangeStart, newPrefix, count == childCount);
+        }
+        if (atn->rangeEnd) {
+            count++;
+            printDecoratedAST(atn->rangeEnd, newPrefix, count == childCount);
+        }
+    }
 }
 
 void semanticAnalysis(ASTNode* ast) {
+    cout << "\nhere\n" << endl;
     SemanticAnalyzer analyzer;
     analyzer.analyze(ast);
+
+    cout << "\n========== Decorated AST ==========\n";
+    analyzer.printDecoratedAST(ast, "", true);
+    cout << "===================================\n" << endl;
 }
 
 void printSymbolTables() {
@@ -749,3 +1028,16 @@ void printSymbolTables() {
     printBtab();
     printAtab();
 }
+
+// void printDecoratedASTTree(ASTNode* root) {
+//     if (!root) {
+//         cerr << "Error: AST root is null\n";
+//         return;
+//     }
+    
+//     cout << "\n========== Decorated AST ==========\n";
+    
+//     SemanticAnalyzer analyzer;
+//     analyzer.printDecoratedAST(root, "", true);
+    
+// }

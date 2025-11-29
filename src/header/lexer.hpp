@@ -27,7 +27,8 @@ vector<Token> runDFA(
     const json &rules,
     const unordered_set<string> &keywords,
     const unordered_set<string> &logical_ops,
-    const unordered_set<string> &arith_word_ops
+    const unordered_set<string> &arith_word_ops,
+    const unordered_set<string> &boolean_literals
 );
 int lexer_main(int argc, char* argv[]);
 

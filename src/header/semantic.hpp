@@ -46,11 +46,13 @@ public:
     
  
     bool analyze(ASTNode* root);
-    
+    string getObjectName(int objCode);
+    string getTypeName(int typeCode);
     void printDecoratedAST(ASTNode* node, const string& prefix = "", bool isLast = true);
 };
 
 void semanticAnalysis(ASTNode* ast);
 void printSymbolTables();
+// void printDecoratedASTTree(ASTNode* root);
 
 #endif

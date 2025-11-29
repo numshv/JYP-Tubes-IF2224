@@ -108,7 +108,7 @@ ASTNode* buildFactor(ParseNode* p) {
     ParseNode* c = p->children[0];
 
     // NUMBER
-    if (isToken(c, "NUMBER")) {
+    if (isToken(c, "NUMBER") || isToken(c, "REAL_NUMBER")) {
         string val = getTokenText(c);
         if (val.find('.') != string::npos) {
             return new RealNode(stod(val));
@@ -128,10 +128,10 @@ ASTNode* buildFactor(ParseNode* p) {
     }
 
     // Boolean literals (KEYWORD benar/salah)
-    if (isToken(c, "KEYWORD")) {
-        string kw = getTokenText(c);
-        if (kw == "true" || kw == "benar") return new BoolNode(true);
-        if (kw == "false" || kw == "salah") return new BoolNode(false);
+    if (isToken(c, "BOOLEAN")) {
+        string bl = getTokenText(c);
+        if (bl == "true" || bl == "benar") return new BoolNode(true);
+        if (bl == "false" || bl == "salah") return new BoolNode(false);
     }
 
     // IDENTIFIER: could be variable or array access or function call
@@ -947,7 +947,7 @@ void printAST(ASTNode* node, const string& prefix, bool isLast) {
             } else if (an->value->nodeType == "Real") {
                 cout << "Real(" << static_cast<RealNode*>(an->value)->value << ")" << endl;
             } else if (an->value->nodeType == "String") {
-                cout << "String(" << static_cast<StringNode*>(an->value)->value << "\")" << endl;
+                cout << "String(\"" << static_cast<StringNode*>(an->value)->value << "\")" << endl;
             } else if (an->value->nodeType == "Char") {
                 cout << "Char('" << static_cast<CharNode*>(an->value)->value << "')" << endl;
             } else if (an->value->nodeType == "Boolean") {
