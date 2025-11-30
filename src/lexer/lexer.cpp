@@ -45,7 +45,8 @@ vector<Token> runDFA(
     const json &rules,
     const unordered_set<string> &keywords,
     const unordered_set<string> &logical_ops,
-    const unordered_set<string> &arith_word_ops
+    const unordered_set<string> &arith_word_ops,
+    const unordered_set<string> &boolean_literals
 ) 
 {
     // Build character classification map
@@ -123,7 +124,10 @@ vector<Token> runDFA(
             if (finals.count(state)) {
                 string tokType = stateToToken[state];
                 if (state == "q_identifier") {
-                    if (logical_ops.count(cur)) {
+                    if(boolean_literals.count(cur)){
+                        tokType = "BOOLEAN";
+                    }
+                    else if (logical_ops.count(cur)) {
                         tokType = "LOGICAL_OPERATOR";
                     } else if (arith_word_ops.count(cur)) {
                         tokType = "ARITHMETIC_OPERATOR";
@@ -156,7 +160,10 @@ vector<Token> runDFA(
         if (finals.count(state)) {
             string tokType = stateToToken[state];
             if (state == "q_identifier") {
-                if (logical_ops.count(cur)) {
+                if (boolean_literals.count(cur)) {
+                    tokType = "BOOLEAN";
+                }
+                else if (logical_ops.count(cur)) {
                     tokType = "LOGICAL_OPERATOR";
                 } else if (arith_word_ops.count(cur)) {
                     tokType = "ARITHMETIC_OPERATOR";
@@ -200,9 +207,11 @@ int lexer_main(int argc, char* argv[]) {
     unordered_set<string> keywords;
     unordered_set<string> logical_ops;
     unordered_set<string> arith_word_ops;
+    unordered_set<string> boolean_literals;
     for (auto &kw : rules["keyword_lookup"]["keywords"]) keywords.insert(kw);
     for (auto &kw : rules["keyword_lookup"]["logical_operators"]) logical_ops.insert(kw);
     for (auto &kw : rules["keyword_lookup"]["arithmetic_word_operators"]) arith_word_ops.insert(kw);
+    for (auto &kw : rules["keyword_lookup"]["boolean_literals"]) boolean_literals.insert(kw);
 
     // Read Pascal 
     ifstream f(argv[1]);
@@ -210,7 +219,7 @@ int lexer_main(int argc, char* argv[]) {
     stringstream buf; buf << f.rdbuf(); string input = buf.str();
 
     // Run DFA
-    vector<Token> toks = runDFA(input, rules, keywords, logical_ops, arith_word_ops);
+    vector<Token> toks = runDFA(input, rules, keywords, logical_ops, arith_word_ops, boolean_literals);
 
     bool hasError = false;
     for (auto &t : toks) {

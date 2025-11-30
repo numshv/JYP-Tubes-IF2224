@@ -65,6 +65,6 @@ ParseNode* additive_operator();
 ParseNode* multiplicative_operator();
 
 ParseNode* buildTree(vector<Token> inputTokens);
-void parser_main(vector<Token> inputTokens);
+ParseNode* parser_main(vector<Token> inputTokens);
 
 #endif

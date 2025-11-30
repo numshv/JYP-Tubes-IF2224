@@ -1,0 +1,9 @@
+Henry tolong kerjain ini yak hehe maap duluan:
+
+- if-statement conversion
+- while-statement conversion
+- for-statement conversion
+- procedure/function conversion and everything related to it
+- fungsi buat print
+
+maacih and semangat!

@@ -1,0 +1,40 @@
+sudah aman:
+- integer variable assigned with real value
+- prosedur/fungsi yang duplikat namanya
+- undefined variable dalam fungsi/prosedur
+- out of bounds array access
+- duplicate variabel declaration
+- assignment ke suatu constant harusnya error
+- type mismatch int diisi string
+- x := benar dan 5; hasilnya error
+- x[i] yang harusnya integerdiisi boolean hasilnya error
+- i := 2 < 3; hasilnya error (i = int)
+- bl := 2 < 'c'; hasilnya error
+- Wrong number/type of parameters passed into a fungsi/prosedur
+- if dan while kondisinya harus boolean
+- for loop iterator non integer
+
+
+
+udah dicek, hasilnya gk sesuai, tp blm dibenerin:
+
+
+not sure, though, udah dicek:
+
+- kalau ada x,y,z: integer terus x := 10; y := 20; z := x/y; bakal di floor in(?) jadi z := 0(?) soalnya gk error
+- kalau kodenya gini:
+
+prosedur proses(n: integer);
+variabel
+    listLokal: larik[1 .. 5] dari integer; 
+    i: integer;
+mulai
+    data := listLokal[1]; 
+selesai;
+
+gk error padahal listlokal belum diisi apa apa tapi data := listLokal[1]; kalau gini emg biarin jd runtime error kah?
+
+belum dicek baru kepikiran:
+- di fungsi harus ada return, di prosedur gk boleh ada return
+- Mismatch return type di fungsi
+
