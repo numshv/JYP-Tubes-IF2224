@@ -8,6 +8,11 @@ sudah aman:
 - type mismatch int diisi string
 - x := benar dan 5; hasilnya error
 - x[i] yang harusnya integerdiisi boolean hasilnya error
+- i := 2 < 3; hasilnya error (i = int)
+- bl := 2 < 'c'; hasilnya error
+- Wrong number/type of parameters passed into a fungsi/prosedur
+- if dan while kondisinya harus boolean
+- for loop iterator non integer
 
 
 
@@ -31,3 +36,5 @@ gk error padahal listlokal belum diisi apa apa tapi data := listLokal[1]; kalau 
 
 belum dicek baru kepikiran:
 - di fungsi harus ada return, di prosedur gk boleh ada return
+- Mismatch return type di fungsi
+
