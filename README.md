@@ -25,8 +25,8 @@ Program ini adalah implementasi compiler untuk bahasa Pascal-S, sebuah subset ba
 Compiler ini dirancang untuk melakukan proses kompilasi lengkap dari source code Pascal-S menjadi executable code, melalui beberapa tahapan:
 
 1. Lexical Analysis
-2. Syntax Analysis [TBA]
-3. Semantic Analysis [TBA]
+2. Syntax Analysis 
+3. Semantic Analysis 
 4. Intermediate Code Generation [TBA]
 5. Interpreter [TBA]
 <br/>
@@ -66,7 +66,6 @@ make
 Program akan dikompilasi dan executable akan tersimpan di folder bin/.
 
 ### Penggunaan
-**[Milestone 1]** Menjalankan Lexical Analyzer
 ``` bash
 # Format
 make run ARGS=<path_to_pascal_file>
@@ -128,3 +127,25 @@ Secara umum, berikut adalah proses yang terjadi dalam parser:
 | 13523072 | Sabilul Huda | implementasi parser | 20% |
 | 13523080 | Diyah Susan Nugrahani | menyusun laporan | 20% |
 | 13523108 | Henry Filberto Shinelo | implementasi parser | 20% |
+
+### Milestone 3 (Semantic Analysis)
+
+Pada milestone ini, kami membangun bagian semantic analysis, tahapan ketiga dari compiler yang bertanggung jawab untuk memeriksa makna/semantic program. Semantic analysis menggunakan Attributed Grammar untuk memastikan program semantically valid sesuai aturan bahasa Pascal-S. Parse tree yang dihasilkan oleh parser ditelusuri secara top-down menggunakan semantic visitor, dan informasi simbol/identifier disimpan dalam symbol table. Komponen semantic analysis ini menghasilkan Decorated AST, yaitu AST yang setiap nodenya diberi informasi tambahan seperti tipe ekspresi, referensi ke symbol table, dan scope.
+
+Secara umum, berikut adalah proses yang terjadi dalam fase semantic analysis:
+1. Menerima parse tree dari parser
+2. Bangun AST
+3. Dalam satu traversal AST, yang dilakukan secara depth first, untuk tiap node yang dikunjungi terjadi hal berikut secara berurutan:
+   - Entry simbol baru dimasukkan ke symbol table
+   - Melakukan semantic checking based on symbol table
+   - Dekorasi node AST sehingga menjadi decorated AST (AST yang lebih lengkap informasinya)
+
+#### Pembagian Tugas
+
+| NIM | Nama | Tugas | persentase kontribusi |
+| :--- | :---: | :---: | ---: |
+| 13523058 | Noumisyifa Nabila Nareswari | implementasi AST + print decorated AST | 20% |
+| 13523066 | M. Ghifary Komara Putra | implementasi symtab umum (tab) | 20% |
+| 13523072 | Sabilul Huda | implementasi symtab block (btab) | 20% |
+| 13523080 | Diyah Susan Nugrahani | implementasi symtab array (atab) | 20% |
+| 13523108 | Henry Filberto Shinelo | implementasi AST + semantic analysis | 20% |
