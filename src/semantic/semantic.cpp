@@ -517,29 +517,29 @@ void SemanticAnalyzer::visitFunctionDecl(FunctionDeclNode* node) {
 void SemanticAnalyzer::visitBlock(BlockNode* node) {
     if (!node) return;
     
-    // int mainBlockIdx = createNewBlock();
-    // enterBlock(mainBlockIdx);
+    int mainBlockIdx = createNewBlock();
+    enterBlock(mainBlockIdx);
     
     node->scopeLevel = currentLevel;
 
-    // Process declarations
-    for (ASTNode* decl : node->declarations) {
-        if (decl->nodeType == "VarDecl") {
-            visitVarDecl(static_cast<VarDeclNode*>(decl));
-        }
-        else if (decl->nodeType == "ConstDecl") {
-            visitConstDecl(static_cast<ConstDeclNode*>(decl));
-        }
-        else if (decl->nodeType == "TypeDecl") {
-            visitTypeDecl(static_cast<TypeDeclNode*>(decl));
-        }
-    }
+    // // Process declarations
+    // for (ASTNode* decl : node->declarations) {
+    //     if (decl->nodeType == "VarDecl") {
+    //         visitVarDecl(static_cast<VarDeclNode*>(decl));
+    //     }
+    //     else if (decl->nodeType == "ConstDecl") {
+    //         visitConstDecl(static_cast<ConstDeclNode*>(decl));
+    //     }
+    //     else if (decl->nodeType == "TypeDecl") {
+    //         visitTypeDecl(static_cast<TypeDeclNode*>(decl));
+    //     }
+    // }
     
     for (ASTNode* stmt : node->statements) {
         visitStatement(stmt);
     }
     
-    // exitBlock();
+    exitBlock();
 }
 
 void SemanticAnalyzer::visitStatement(ASTNode* node) {
