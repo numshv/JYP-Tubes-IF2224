@@ -21,6 +21,10 @@ int determineIndexType(ASTNode* node) {
     if (node->nodeType == "Number") return 1;
     if (node->nodeType == "Real") return 2;
     if (node->nodeType == "Boolean") return 3; 
+    if (node->nodeType == "Var") {
+        VarNode* v = static_cast<VarNode*>(node);
+        if (v->name == "true" || v->name == "false") return 3; // Boolean
+    }
     if (node->nodeType == "Char") return 4;    
     
     return 0; 
@@ -43,6 +47,11 @@ int getOrdinalValue(ASTNode* node) {
     else if (node->nodeType == "Boolean") {
         BoolNode* boolNode = static_cast<BoolNode*>(node);
         return boolNode->value ? 1 : 0;
+    }
+    else if (node->nodeType == "Var") {
+        VarNode* varNode = static_cast<VarNode*>(node);
+        if (varNode->name == "true") return 1;
+        if (varNode->name == "false") return 0;
     }
 
     semanticError("Cannot determine ordinal value for node type: " + node->nodeType);
