@@ -1010,36 +1010,45 @@ void SemanticAnalyzer::checkProcedureCall(ProcedureCallNode* node) {
 void SemanticAnalyzer::checkForLoop(ForNode* node) {
     if (!node || !node->counter) return;
     
+    string expectedType = ""; 
+    
     if (node->counter->nodeType == "Var") {
         VarNode* counterVar = static_cast<VarNode*>(node->counter);
         int idx = lookupIdentifier(counterVar->name);
         
         if (idx > 0 && idx < (int)tab.size()) {
-            // Counter must be integer
-            if (tab[idx].type != 1) { // 1 = integer type code
-                semanticError("For loop counter '" + counterVar->name + "' must be integer type");
-                // hasErrors = true;
+            int typeCode = tab[idx].type;
+
+            bool isOrdinal = (typeCode == 1 || typeCode == 3 || typeCode == 4);
+
+            if (!isOrdinal) { 
+                semanticError("For loop counter '" + counterVar->name + "' must be an ordinal type (Integer, Char, or Boolean)");
+            } else {
+                if (typeCode == 1) expectedType = "integer";
+                else if (typeCode == 3) expectedType = "boolean";
+                else if (typeCode == 4) expectedType = "char";
             }
             
-            // Counter cannot be constant
+            // tidak boleh kontstanta
             if (tab[idx].obj == OBJ_CONSTANT) {
                 semanticError("For loop counter cannot be a constant");
-                // hasErrors = true;
             }
+        } else {
+            return;
         }
     }
     
-    // Check start and end expressions are integer
     string startType = inferType(node->start);
     string endType = inferType(node->end);
     
-    if (startType != "integer") {
-        semanticError("For loop start value must be integer, got '" + startType + "'");
-        // hasErrors = true;
+    if (startType != expectedType) {
+        semanticError("For loop start value type mismatch. Expected '" + expectedType + 
+                      "' (counter type), but got '" + startType + "'");
     }
-    if (endType != "integer") {
-        semanticError("For loop end value must be integer, got '" + endType + "'");
-        // hasErrors = true;
+
+    if (endType != expectedType) {
+        semanticError("For loop end value type mismatch. Expected '" + expectedType + 
+                      "' (counter type), but got '" + endType + "'");
     }
 }
 
