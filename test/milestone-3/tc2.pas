@@ -1,6 +1,6 @@
 program loopChar;
 variabel
-    poin: larik['a' .. 'e'] dari char; 
+    poin: larik['a' .. 'e'] dari integer; 
     c: char;
     total: integer;
 mulai

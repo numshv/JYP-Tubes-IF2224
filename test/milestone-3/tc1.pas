@@ -6,14 +6,15 @@ mulai
     total := 0;
     untuk i := 1 ke 10 lakukan
     mulai
-        numbers := i * 2;
-        total := total + numbers;
+        numbers[i] := i * 2;
+        
+        total := total + numbers[i];
     selesai;
     
     i := 10;
     selama (i >= 1) dan (i <= 10) lakukan
     mulai
-        writeln('Sum = ', sum);
+        writeln('Sum = ', total);
         i := i - 1;
     selesai;
 selesai.
