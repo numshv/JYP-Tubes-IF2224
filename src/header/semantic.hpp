@@ -40,6 +40,15 @@ private:
     void visitBinOp(BinOpNode* node);
     void visitUnaryOp(UnaryOpNode* node);
     
+
+    void checkAssignmentTarget(ASTNode* target);
+    void checkBinaryOperation(BinOpNode* node);
+    void checkUnaryOperation(UnaryOpNode* node);
+    void checkArrayAccess(ArrayAccessNode* node);
+    void checkCondition(ASTNode* condition, const string& context);
+    void checkProcedureCall(ProcedureCallNode* node);
+    void checkForLoop(ForNode* node);
+    
 public:
     SemanticAnalyzer();
     ~SemanticAnalyzer();

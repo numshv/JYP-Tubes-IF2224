@@ -7,7 +7,7 @@ using namespace std;
 vector<AtabEntry> atab;
 
 void semanticError(const string& message) {
-    cerr << "Semantic Error: " << message << endl;
+    // cerr << "Semantic Error: " << message << endl;
     throw runtime_error(message);
 }
 

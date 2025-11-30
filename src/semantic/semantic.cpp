@@ -93,10 +93,13 @@ string SemanticAnalyzer::inferType(ASTNode* node) {
 
 bool SemanticAnalyzer::isCompatibleType(const string& type1, const string& type2) {
     if (type1 == type2) return true;
-    if ((type1 == "integer" && type2 == "real") || (type1 == "real" && type2 == "integer")) {
-        return true;
+    
+    // Tidak izinkan real ke integer
+    if (type1 == "real" && type2 == "integer") {
+        return true;  // OK: real := integer
     }
-    return false;
+    
+    return false;  // Sisanya incompatible
 }
 
 string SemanticAnalyzer::getOperatorResultType(const string& op, const string& leftType, const string& rightType) {
@@ -183,8 +186,8 @@ void SemanticAnalyzer::visitVarDecl(VarDeclNode* node) {
     for (const string& name : node->names) {
         if (isDuplicateInCurrentBlock(name)) {
             semanticError("Duplicate variable: " + name);
-            hasErrors = true;
-            continue;
+            // hasErrors = true;
+            // continue;
         }
         
         int typeCode = 0;
@@ -237,7 +240,7 @@ void SemanticAnalyzer::visitConstDecl(ConstDeclNode* node) {
     
     if (isDuplicateInCurrentBlock(node->name)) {
         semanticError("Duplicate constant: " + node->name);
-        hasErrors = true;
+        // hasErrors = true;
         return;
     }
     
@@ -273,7 +276,7 @@ void SemanticAnalyzer::visitTypeDecl(TypeDeclNode* node) {
     
     if (isDuplicateInCurrentBlock(node->name)) {
         semanticError("Duplicate type: " + node->name);
-        hasErrors = true;
+        // hasErrors = true;
         return;
     }
     
@@ -317,7 +320,7 @@ void SemanticAnalyzer::visitProcedureDecl(ProcedureDeclNode* node) {
     
     if (isDuplicateInCurrentBlock(node->name)) {
         semanticError("Duplicate procedure: " + node->name);
-        hasErrors = true;
+        // hasErrors = true;
         return;
     }
     
@@ -416,7 +419,7 @@ void SemanticAnalyzer::visitFunctionDecl(FunctionDeclNode* node) {
     
     if (isDuplicateInCurrentBlock(node->name)) {
         semanticError("Duplicate function: " + node->name);
-        hasErrors = true;
+        // hasErrors = true;
         return;
     }
     
@@ -553,7 +556,8 @@ void SemanticAnalyzer::visitStatement(ASTNode* node) {
 
 void SemanticAnalyzer::visitAssign(AssignNode* node) {
     if (!node) return;
-    
+
+    checkAssignmentTarget(node->target);
     visitExpression(node->value);
     
     if (node->target) {
@@ -582,7 +586,7 @@ void SemanticAnalyzer::visitAssign(AssignNode* node) {
     string valueType = inferType(node->value);
     
     if (!isCompatibleType(targetType, valueType)) {
-        semanticWarning("Type mismatch: " + targetType + " := " + valueType);
+        semanticError("Type mismatch: " + targetType + " := " + valueType);
     }
     
     node->dataType = targetType;
@@ -593,6 +597,7 @@ void SemanticAnalyzer::visitIf(IfNode* node) {
     if (!node) return;
     
     visitExpression(node->condition);
+    checkCondition(node->condition, "If");
     
     if (node->thenBranch) visitStatement(node->thenBranch);
     if (node->elseBranch) visitStatement(node->elseBranch);
@@ -604,6 +609,7 @@ void SemanticAnalyzer::visitWhile(WhileNode* node) {
     if (!node) return;
     
     visitExpression(node->condition);
+    checkCondition(node->condition, "While");
     if (node->body) visitStatement(node->body);
     
     node->scopeLevel = currentLevel;
@@ -614,6 +620,8 @@ void SemanticAnalyzer::visitFor(ForNode* node) {
     
     visitExpression(node->start);
     visitExpression(node->end);
+
+    checkForLoop(node);
     
     if (node->counter && node->counter->nodeType == "Var") {
         VarNode* counterVar = static_cast<VarNode*>(node->counter);
@@ -638,9 +646,10 @@ void SemanticAnalyzer::visitProcedureCall(ProcedureCallNode* node) {
     int idx = lookupIdentifier(node->procName);
     if (idx == 0) {
         semanticError("Undefined: " + node->procName);
-        hasErrors = true;
+        // hasErrors = true;
     } else {
         node->symbolIndex = idx;
+        checkProcedureCall(node);
     }
     
     for (ASTNode* arg : node->args) {
@@ -697,7 +706,7 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
     int idx = lookupIdentifier(node->name);
     if (idx == 0) {
         semanticError("Undefined: " + node->name);
-        hasErrors = true;
+        // hasErrors = true;
     } else {
         node->symbolIndex = idx;
         node->scopeLevel = tab[idx].lev;
@@ -705,7 +714,7 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
         
         // Check if variable is initialized before use
         if (tab[idx].obj == OBJ_VARIABLE && !tab[idx].initialized) {
-            semanticWarning("Variable '" + node->name + "' may be used before initialization");
+            semanticError("Variable '" + node->name + "' may be used before initialization");
         }
     }
 }
@@ -716,7 +725,7 @@ void SemanticAnalyzer::visitArrayAccess(ArrayAccessNode* node) {
     int idx = lookupIdentifier(node->arrayName);
     if (idx == 0) {
         semanticError("Undefined: " + node->arrayName);
-        hasErrors = true;
+        // hasErrors = true;
     } else {
         node->symbolIndex = idx;
         node->scopeLevel = tab[idx].lev;
@@ -724,8 +733,10 @@ void SemanticAnalyzer::visitArrayAccess(ArrayAccessNode* node) {
         
         // Check if array is initialized before access
         if (tab[idx].obj == OBJ_VARIABLE && !tab[idx].initialized) {
-            semanticWarning("Array '" + node->arrayName + "' may be used before initialization");
+            semanticError("Array '" + node->arrayName + "' may be used before initialization");
         }
+
+        checkArrayAccess(node);
     }
     
     visitExpression(node->index);
@@ -736,6 +747,8 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
     
     visitExpression(node->left);
     visitExpression(node->right);
+
+    checkBinaryOperation(node);
     
     node->dataType = inferType(node);
     node->scopeLevel = currentLevel;
@@ -745,9 +758,224 @@ void SemanticAnalyzer::visitUnaryOp(UnaryOpNode* node) {
     if (!node) return;
     
     visitExpression(node->operand);
+    checkUnaryOperation(node);
     
     node->dataType = inferType(node);
     node->scopeLevel = currentLevel;
+}
+
+void SemanticAnalyzer::checkAssignmentTarget(ASTNode* target) {
+    if (!target) return;
+    
+    if (target->nodeType == "Var") {
+        VarNode* varNode = static_cast<VarNode*>(target);
+        int idx = lookupIdentifier(varNode->name);
+        if (idx > 0 && idx < (int)tab.size()) {
+            // Cannot assign to constant
+            if (tab[idx].obj == OBJ_CONSTANT) {
+                semanticError("Cannot assign to constant '" + varNode->name + "'");
+                // hasErrors = true;
+            }
+            // Cannot assign to procedure/function name
+            else if (tab[idx].obj == OBJ_PROCEDURE) {
+                semanticError("Cannot assign to procedure '" + varNode->name + "'");
+                // hasErrors = true;
+            }
+        }
+    }
+}
+
+void SemanticAnalyzer::checkBinaryOperation(BinOpNode* node) {
+    if (!node) return;
+    
+    string leftType = inferType(node->left);
+    string rightType = inferType(node->right);
+    string op = node->op;
+    
+    // Arithmetic operators: +, -, *, /, bagi, mod
+    if (op == "+" || op == "-" || op == "*" || op == "/" || op == "bagi" || op == "mod") {
+        if (leftType != "integer" && leftType != "real") {
+            semanticError("Arithmetic operator '" + op + "' requires numeric operand, got '" + leftType + "'");
+            // hasErrors = true;
+        }
+        if (rightType != "integer" && rightType != "real") {
+            semanticError("Arithmetic operator '" + op + "' requires numeric operand, got '" + rightType + "'");
+            // hasErrors = true;
+        }
+        
+        // mod and bagi require integer operands
+        if (op == "mod" || op == "bagi") {
+            if (leftType != "integer") {
+                semanticError("Operator '" + op + "' requires integer operand, got '" + leftType + "'");
+                // hasErrors = true;
+            }
+            if (rightType != "integer") {
+                semanticError("Operator '" + op + "' requires integer operand, got '" + rightType + "'");
+                // hasErrors = true;
+            }
+        }
+    }
+    // Logical operators: dan, atau (and, or)
+    else if (op == "dan" || op == "atau" || op == "and" || op == "or") {
+        if (leftType != "boolean") {
+            semanticError("Logical operator '" + op + "' requires boolean operand, got '" + leftType + "'");
+            // hasErrors = true;
+        }
+        if (rightType != "boolean") {
+            semanticError("Logical operator '" + op + "' requires boolean operand, got '" + rightType + "'");
+            // hasErrors = true;
+        }
+    }
+    // Relational operators: =, <>, <, >, <=, >=
+    else if (op == "=" || op == "<>" || op == "<" || op == ">" || op == "<=" || op == ">=") {
+        // Operands must be comparable (same type or numeric types)
+        if (!isCompatibleType(leftType, rightType)) {
+            semanticError("Comparison between incompatible types: '" + leftType + "' and '" + rightType + "'");
+        }
+    }
+}
+
+void SemanticAnalyzer::checkUnaryOperation(UnaryOpNode* node) {
+    if (!node) return;
+    
+    string operandType = inferType(node->operand);
+    string op = node->op;
+    
+    // Logical "tidak"
+    if (op == "tidak") {
+        if (operandType != "boolean") {
+            semanticError("Logical NOT requires boolean operand, got '" + operandType + "'");
+            // hasErrors = true;
+        }
+    }
+    // Arithmetic unary +/-
+    else if (op == "+" || op == "-") {
+        if (operandType != "integer" && operandType != "real") {
+            semanticError("Unary '" + op + "' requires numeric operand, got '" + operandType + "'");
+            // hasErrors = true;
+        }
+    }
+}
+
+void SemanticAnalyzer::checkArrayAccess(ArrayAccessNode* node) {
+    if (!node) return;
+    
+    int idx = lookupIdentifier(node->arrayName);
+    if (idx == 0) return; // Already reported as undefined
+    
+    if (idx > 0 && idx < (int)tab.size()) {
+        // Must be array type
+        if (tab[idx].type != 5) { // 5 = array type code
+            semanticError("'" + node->arrayName + "' is not an array");
+            // hasErrors = true;
+            return;
+        }
+        
+        // Check index type
+        string indexType = inferType(node->index);
+        
+        // Get array info from atab
+        int atab_idx = tab[idx].ref;
+        if (atab_idx >= 0 && atab_idx < (int)atab.size()) {
+            int expectedIndexType = atab[atab_idx].xtyp;
+            string expectedTypeName = getTypeName(expectedIndexType);
+            
+            if (indexType != expectedTypeName && indexType != "integer") {
+                semanticError("Array index type mismatch: expected '" + expectedTypeName + "', got '" + indexType + "'");
+            }
+        }
+    }
+}
+
+void SemanticAnalyzer::checkCondition(ASTNode* condition, const string& context) {
+    if (!condition) return;
+    
+    string condType = inferType(condition);
+    if (condType != "boolean") {
+        semanticError(context + " condition must be boolean, got '" + condType + "'");
+        // hasErrors = true;
+    }
+}
+
+void SemanticAnalyzer::checkProcedureCall(ProcedureCallNode* node) {
+    if (!node) return;
+    
+    int idx = lookupIdentifier(node->procName);
+    if (idx == 0) return; // Already reported as undefined
+    
+    if (idx > 0 && idx < (int)tab.size()) {
+        int objType = tab[idx].obj;
+        
+        // Must be procedure or function
+        if (objType != OBJ_PROCEDURE && objType != OBJ_FUNCTION) {
+            semanticError("'" + node->procName + "' is not a procedure or function");
+            // hasErrors = true;
+            return;
+        }
+        
+        // Get block info for parameter checking
+        int blockIdx = tab[idx].ref;
+        if (blockIdx > 0 && blockIdx < (int)btab.size()) {
+            int paramCount = 0;
+            int lastParam = btab[blockIdx].lpar;
+            
+            // Count parameters
+            int paramIdx = lastParam;
+            while (paramIdx > 0 && tab[paramIdx].lev > tab[idx].lev) {
+                paramCount++;
+                paramIdx = tab[paramIdx].link;
+            }
+            
+            // Skip check for built-in procedures (writeln, readln, etc)
+            if (node->procName == "writeln" || node->procName == "write" || 
+                node->procName == "readln" || node->procName == "read") {
+                return; // These accept variable arguments
+            }
+            
+            // Check argument count
+            if ((int)node->args.size() != paramCount) {
+                semanticError("'" + node->procName + "' expects " + to_string(paramCount) + 
+                            " arguments, got " + to_string(node->args.size()));
+                // hasErrors = true;
+            }
+        }
+    }
+}
+
+void SemanticAnalyzer::checkForLoop(ForNode* node) {
+    if (!node || !node->counter) return;
+    
+    if (node->counter->nodeType == "Var") {
+        VarNode* counterVar = static_cast<VarNode*>(node->counter);
+        int idx = lookupIdentifier(counterVar->name);
+        
+        if (idx > 0 && idx < (int)tab.size()) {
+            // Counter must be integer
+            if (tab[idx].type != 1) { // 1 = integer type code
+                semanticError("For loop counter '" + counterVar->name + "' must be integer type");
+                // hasErrors = true;
+            }
+            
+            // Counter cannot be constant
+            if (tab[idx].obj == OBJ_CONSTANT) {
+                semanticError("For loop counter cannot be a constant");
+                // hasErrors = true;
+            }
+        }
+    }
+    
+    // Check start and end expressions are integer
+    string startType = inferType(node->start);
+    string endType = inferType(node->end);
+    
+    if (startType != "integer") {
+        semanticError("For loop start value must be integer, got '" + startType + "'");
+        // hasErrors = true;
+    }
+    if (endType != "integer") {
+        semanticError("For loop end value must be integer, got '" + endType + "'");
+        // hasErrors = true;
+    }
 }
 
 bool SemanticAnalyzer::analyze(ASTNode* root) {
