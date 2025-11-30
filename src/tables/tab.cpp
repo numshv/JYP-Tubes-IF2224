@@ -54,6 +54,51 @@ void initializeTab(){
         e.initialized = false;
         tab.push_back(e);
     }
+
+    {
+        TabEntry e;
+        e.name = "false";
+        e.link = 0;
+        e.obj = OBJ_CONSTANT; 
+        e.type = 3;           
+        e.ref = 0;            
+        e.nrm = 1; e.lev = 0; e.adr = 0;
+        tab.push_back(e);
+    }
+
+    {
+        TabEntry e;
+        e.name = "true";
+        e.link = 0;
+        e.obj = OBJ_CONSTANT; 
+        e.type = 3;           
+        e.ref = 1;            
+        e.nrm = 1; e.lev = 0; e.adr = 0;
+        tab.push_back(e);
+    }
+
+    struct StdType { string name; int typeCode; int size; };
+    vector<StdType> types = {
+        {"integer", 1, 1},
+        {"real",    2, 1},
+        {"boolean", 3, 1},
+        {"char",    4, 1}
+    };
+
+    for(const auto& t : types) {
+        TabEntry e;
+        e.name = t.name;
+        e.link = 0;
+        e.obj = OBJ_TYPE;     
+        e.type = t.typeCode;  
+        e.ref = t.size;  
+        e.nrm = 1; e.lev = 0; e.adr = 0;
+        tab.push_back(e);
+    }
+
+    if (!btab.empty()) {
+        btab[0].last = tab.size() - 1;
+    }
 }
 
 bool isDuplicateInCurrentBlock(const string& name){
@@ -118,36 +163,30 @@ int insertIdentifier(const string& name, int obj, int type, int ref, int nrm, in
 }
 
 int lookupIdentifier(const string& name){
-    initializeTab();
-
-    // reserved words
-    for(size_t i = 0; i < 29 && i < tab.size(); i++){
-        if(tab[i].name == name){
-            return i;  
-        }
-    }
-
-    // user-defined
-    for(int lv = currentLevel; lv>=0; --lv){
-        if(lv >= (int)display.size()) continue;
+    for (int lv = currentLevel; lv >= 0; --lv) {
+        if (lv >= (int)display.size()) continue;
         int block = display[lv];
-        if(block < 0 || block >= (int)btab.size()) continue;
+        if (block < 0 || block >= (int)btab.size()) continue;
 
         int idx = btab[block].last;
-        while(idx!=0){
-            if(tab[idx].name == name) return idx;
+        while (idx > 0) {
+            if (tab[idx].name == name) return idx;
             idx = tab[idx].link;
         }
     }
 
-    // predefined procedures
-    if(name == "writeln" || name == "write" || name == "readln" || name == "read"){
+    for (size_t i = 0; i < tab.size(); i++) {
+        if (tab[i].name == name) {
+            return i;
+        }
+    }
+
+    if (name == "writeln" || name == "write" || name == "readln" || name == "read") {
         for(size_t i = 29; i < tab.size(); i++){
             if(tab[i].name == name && tab[i].nrm == 1 && tab[i].obj == OBJ_PROCEDURE){
                 return i;  
             }
         }
-        
         TabEntry e;
         e.name = name;
         e.link = 0;
@@ -162,7 +201,7 @@ int lookupIdentifier(const string& name){
         return tab.size() - 1;
     }
 
-    return 0;
+    return 0; // Tidak ketemu
 }
 
 void openScope(){
