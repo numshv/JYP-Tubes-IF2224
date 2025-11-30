@@ -23,6 +23,7 @@ extern vector<AtabEntry> atab;
 
 void semanticError(const string& message);
 void semanticWarning(const string& message);
+string getTypeName(int typeCode);
 
 int getTypeCode(const string& typeName);
 int getTypeSize(int typeCode);

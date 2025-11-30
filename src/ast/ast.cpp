@@ -130,8 +130,8 @@ ASTNode* buildFactor(ParseNode* p) {
     // Boolean literals (KEYWORD benar/salah)
     if (isToken(c, "BOOLEAN")) {
         string bl = getTokenText(c);
-        if (bl == "true" || bl == "benar") return new BoolNode(true);
-        if (bl == "false" || bl == "salah") return new BoolNode(false);
+        if (bl == "benar") return new BoolNode(true);
+        if (bl == "salah") return new BoolNode(false);
     }
 
     // IDENTIFIER: could be variable or array access or function call

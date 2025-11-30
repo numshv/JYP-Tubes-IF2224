@@ -185,7 +185,7 @@ void SemanticAnalyzer::visitVarDecl(VarDeclNode* node) {
     
     for (const string& name : node->names) {
         if (isDuplicateInCurrentBlock(name)) {
-            semanticError("Duplicate variable: " + name);
+            semanticError("Variable '" + name + "' is already declared in this scope");
             // hasErrors = true;
             // continue;
         }
@@ -239,7 +239,7 @@ void SemanticAnalyzer::visitConstDecl(ConstDeclNode* node) {
     if (!node) return;
     
     if (isDuplicateInCurrentBlock(node->name)) {
-        semanticError("Duplicate constant: " + node->name);
+        semanticError("Constant '" + node->name + "' is already declared in this scope");
         // hasErrors = true;
         return;
     }
@@ -275,7 +275,7 @@ void SemanticAnalyzer::visitTypeDecl(TypeDeclNode* node) {
     if (!node) return;
     
     if (isDuplicateInCurrentBlock(node->name)) {
-        semanticError("Duplicate type: " + node->name);
+        semanticError("Type '" + node->name + "' is already declared in this scope");
         // hasErrors = true;
         return;
     }
@@ -319,7 +319,7 @@ void SemanticAnalyzer::visitProcedureDecl(ProcedureDeclNode* node) {
     if (!node) return;
     
     if (isDuplicateInCurrentBlock(node->name)) {
-        semanticError("Duplicate procedure: " + node->name);
+        semanticError("Procedure '" + node->name + "' is already declared in this scope");
         // hasErrors = true;
         return;
     }
@@ -418,7 +418,7 @@ void SemanticAnalyzer::visitFunctionDecl(FunctionDeclNode* node) {
     if (!node) return;
     
     if (isDuplicateInCurrentBlock(node->name)) {
-        semanticError("Duplicate function: " + node->name);
+        semanticError("Function '" + node->name + "' is already declared in this scope");
         // hasErrors = true;
         return;
     }
@@ -561,32 +561,56 @@ void SemanticAnalyzer::visitAssign(AssignNode* node) {
     visitExpression(node->value);
     
     if (node->target) {
+        int idx = -1;
         if (node->target->nodeType == "Var") {
             VarNode* varNode = static_cast<VarNode*>(node->target);
-            int idx = lookupIdentifier(varNode->name);
-            if (idx > 0 && idx < (int)tab.size()) {
-                if (tab[idx].obj == OBJ_VARIABLE) {
-                    tab[idx].initialized = true;
-                }
-            }
+            idx = lookupIdentifier(varNode->name);
         } else if (node->target->nodeType == "ArrayAccess") {
             ArrayAccessNode* arrayNode = static_cast<ArrayAccessNode*>(node->target);
-            int idx = lookupIdentifier(arrayNode->arrayName);
-            if (idx > 0 && idx < (int)tab.size()) {
-                if (tab[idx].obj == OBJ_VARIABLE) {
-                    tab[idx].initialized = true;
-                }
+            idx = lookupIdentifier(arrayNode->arrayName);
+        }
+
+        if (idx > 0 && idx < (int)tab.size()) {
+            TabEntry &lhsEntry = tab[idx];
+
+            // assignment ke const gk boleh
+            if (lhsEntry.obj == OBJ_CONSTANT) {
+                semanticError(
+                    "Cannot assign to constant '" + lhsEntry.name + "'"
+                );
+            }
+
+            // Cek variable biasa atau array
+            if (lhsEntry.obj == OBJ_VARIABLE) {
+                lhsEntry.initialized = true;
             }
         }
     }
+
     
     visitExpression(node->target);
     
     string targetType = inferType(node->target);
     string valueType = inferType(node->value);
+
+    if (node->value->nodeType == "Var" && valueType == "unknown") {
+        // Kalau VarNode tapi undefined, tetap beri type "unknown"
+        valueType = "unknown";
+    }
+
+    string varName = "";
+    if (node->target->nodeType == "Var") {
+        varName = static_cast<VarNode*>(node->target)->name;
+    } else if (node->target->nodeType == "ArrayAccess") {
+        varName = static_cast<ArrayAccessNode*>(node->target)->arrayName;
+    }
+    
+    if (targetType == "integer" && valueType == "real") {
+        semanticError("Cannot assign real value to integer variable '" + varName + "' (type: " + targetType + " := " + valueType + ")");
+    }
     
     if (!isCompatibleType(targetType, valueType)) {
-        semanticError("Type mismatch: " + targetType + " := " + valueType);
+        semanticError("Type mismatch in assignment to '" + varName + "': cannot assign '" + valueType + "' to '" + targetType + "'");
     }
     
     node->dataType = targetType;
@@ -645,7 +669,7 @@ void SemanticAnalyzer::visitProcedureCall(ProcedureCallNode* node) {
     
     int idx = lookupIdentifier(node->procName);
     if (idx == 0) {
-        semanticError("Undefined: " + node->procName);
+        semanticError("Undefined procedure '" + node->procName + "'");
         // hasErrors = true;
     } else {
         node->symbolIndex = idx;
@@ -704,8 +728,9 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
     if (!node) return;
     
     int idx = lookupIdentifier(node->name);
+    
     if (idx == 0) {
-        semanticError("Undefined: " + node->name);
+        semanticError("Undefined variable '" + node->name + "'");
         // hasErrors = true;
     } else {
         node->symbolIndex = idx;
@@ -714,33 +739,60 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
         
         // Check if variable is initialized before use
         if (tab[idx].obj == OBJ_VARIABLE && !tab[idx].initialized) {
-            semanticError("Variable '" + node->name + "' may be used before initialization");
+            semanticError("Variable '" + node->name + "' might be used before being assigned a value");
         }
     }
 }
 
 void SemanticAnalyzer::visitArrayAccess(ArrayAccessNode* node) {
     if (!node) return;
-    
+
+    // First analyze index expression
+    visitExpression(node->index);
+
     int idx = lookupIdentifier(node->arrayName);
     if (idx == 0) {
-        semanticError("Undefined: " + node->arrayName);
-        // hasErrors = true;
-    } else {
-        node->symbolIndex = idx;
-        node->scopeLevel = tab[idx].lev;
-        node->dataType = inferType(node);
-        
-        // Check if array is initialized before access
-        if (tab[idx].obj == OBJ_VARIABLE && !tab[idx].initialized) {
-            semanticError("Array '" + node->arrayName + "' may be used before initialization");
-        }
-
-        checkArrayAccess(node);
+        semanticError("Undefined array '" + node->arrayName + "'");
+        return;
     }
-    
-    visitExpression(node->index);
+
+    if (tab[idx].type != 5) { // Not array
+        semanticError("'" + node->arrayName + "' is not an array");
+        return;
+    }
+
+    node->symbolIndex = idx;
+    node->scopeLevel = tab[idx].lev;
+
+    int atab_idx = tab[idx].ref;
+    int expectedIndexType = atab[atab_idx].xtyp;
+    string expectedTypeName = getTypeName(expectedIndexType);
+
+    string indexType = inferType(node->index);
+    if (indexType != expectedTypeName && indexType != "integer") {
+        semanticError("Array index type mismatch: expected '" + expectedTypeName +
+                      "', got '" + indexType + "'");
+    }
+
+    // out of bounds check
+    if (node->index->nodeType == "Number") {
+        NumberNode* numIndex = static_cast<NumberNode*>(node->index);
+        int idxVal = numIndex->value;
+
+        int low = atab[atab_idx].low;
+        int high = atab[atab_idx].high;
+
+        if (idxVal < low || idxVal > high) {
+            semanticError("Array index " + to_string(idxVal) +
+                          " out of bounds [" + to_string(low) + ".." +
+                          to_string(high) + "] for array '" + node->arrayName + "'");
+        }
+    }
+
+    // element type
+    node->dataType = getTypeName(atab[atab_idx].etyp);
 }
+
 
 void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
     if (!node) return;

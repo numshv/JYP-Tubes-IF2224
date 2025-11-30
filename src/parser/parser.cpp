@@ -152,7 +152,7 @@ ParseNode* const_declaration() {
     do {
         addChild(node, matchType("IDENTIFIER"));
         addChild(node, matchType("ASSIGN_OPERATOR"));
-        if (cur_tok.type == "NUMBER" || cur_tok.type == "CHAR_LITERAL" ||
+        if (cur_tok.type == "NUMBER" || cur_tok.type == "CHAR_LITERAL" || cur_tok.type == "REAL_NUMBER" ||
             cur_tok.type == "STRING_LITERAL" || cur_tok.type == "BOOLEAN" ||
             cur_tok.type == "IDENTIFIER") {
             addChild(node, makeTokenNode(cur_tok));

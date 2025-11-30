@@ -15,6 +15,17 @@ void semanticWarning(const string& message) {
     cerr << "Semantic Warning: " << message << endl;
 }
 
+string getTypeName(int typeCode) {
+    switch(typeCode) {
+        case 1: return "integer";
+        case 2: return "real";
+        case 3: return "boolean";
+        case 4: return "char";
+        case 5: return "array";
+        default: return "unknown";
+    }
+}
+
 int determineIndexType(ASTNode* node) {
     if (!node) return 0;
 
@@ -124,13 +135,19 @@ int processArrayDeclaration(ArrayTypeNode* arrayTypeNode) {
     int endType = determineIndexType(arrayTypeNode->rangeEnd);
 
     if (startType == 0 || endType == 0) {
-        semanticError("Invalid index type. Array index must be Integer, Char, or Boolean.");
+        semanticError(
+            "Array index type must be integer, char, or boolean "
+            "(got type: " + getTypeName(startType) + ")"
+        );
         return -1;
     }
 
     if (startType != endType) {
-        semanticError("Array range type mismatch. Start is type " + to_string(startType) + 
-                      ", End is type " + to_string(endType));
+        semanticError(
+            "Array index type mismatch in range [" + arrayTypeNode->elementType
+            + "] (start type: " + getTypeName(startType)
+            + ", end type: " + getTypeName(endType) + ")"
+        );
         return -1;
     }
 
