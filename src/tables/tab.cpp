@@ -96,9 +96,6 @@ void initializeTab(){
         tab.push_back(e);
     }
 
-    if (!btab.empty()) {
-        btab[0].last = tab.size() - 1;
-    }
 }
 
 bool isDuplicateInCurrentBlock(const string& name){
