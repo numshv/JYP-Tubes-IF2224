@@ -1049,7 +1049,6 @@ void SemanticAnalyzer::printDecoratedAST(ASTNode* node, const string& prefix, bo
 }
 
 void semanticAnalysis(ASTNode* ast) {
-    cout << "\nhere\n" << endl;
     SemanticAnalyzer analyzer;
     analyzer.analyze(ast);
 
