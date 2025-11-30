@@ -539,7 +539,7 @@ void SemanticAnalyzer::visitBlock(BlockNode* node) {
         visitStatement(stmt);
     }
     
-    exitBlock();
+    // exitBlock();
 }
 
 void SemanticAnalyzer::visitStatement(ASTNode* node) {
