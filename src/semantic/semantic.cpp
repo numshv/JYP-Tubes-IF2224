@@ -802,6 +802,35 @@ void SemanticAnalyzer::visitArrayAccess(ArrayAccessNode* node) {
         }
     }
 
+    else if (node->index->nodeType == "Char") {
+        CharNode* charIndex = static_cast<CharNode*>(node->index);
+        char idxVal = charIndex->value;
+        int intVal = static_cast<int>(idxVal);
+
+        int low = atab[atab_idx].low;
+        int high = atab[atab_idx].high;
+
+        if (intVal < low || intVal > high) {
+            semanticError("Array index '" + string(1, idxVal) + "' (" + to_string(intVal) +
+                         ") out of bounds for array '" + node->arrayName + "'");
+        }
+    }
+
+    else if (node->index->nodeType == "Boolean") {
+        BoolNode* boolIndex = static_cast<BoolNode*>(node->index);
+        bool idxVal = boolIndex->value;
+        int intVal = idxVal ? 1 : 0;
+
+        int low = atab[atab_idx].low;
+        int high = atab[atab_idx].high;
+
+        if (intVal < low || intVal > high) {
+            string boolStr = idxVal ? "true" : "false";
+            semanticError("Array index '" + boolStr + "' (" + to_string(intVal) +
+                         ") out of bounds for array '" + node->arrayName + "'");
+        }
+    }
+
     // element type
     node->dataType = getTypeName(atab[atab_idx].etyp);
 }

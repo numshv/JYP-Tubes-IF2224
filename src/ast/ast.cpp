@@ -124,6 +124,10 @@ ASTNode* buildFactor(ParseNode* p) {
     // CHAR_LITERAL
     if (isToken(c, "CHAR_LITERAL")) {
         string val = getTokenText(c);
+        // Remove single quotes if present
+        if (val.size() >= 3 && val.front() == '\'' && val.back() == '\'') {
+            return new CharNode(val[1]);
+        }
         return new CharNode(val.empty() ? '\0' : val[0]);
     }
 
