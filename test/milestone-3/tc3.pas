@@ -1,6 +1,6 @@
 program ShadowTest;
 variabel
-    data: integer; { Global }
+    data: integer; 
 
 prosedur proses(n: integer);
 variabel

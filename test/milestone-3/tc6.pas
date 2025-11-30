@@ -1,6 +1,6 @@
 program GerbangLogika;
 variabel
-    gateNOT: larik[false .. true] dari bool;
+    gateNOT: larik[false .. true] dari boolean;
     inputVal, outputVal: boolean;
 mulai
     gateNOT[false] := true;
@@ -9,7 +9,7 @@ mulai
     inputVal := false;
     
 
-    if (gateNOT[inputVal]) then
+    jika (gateNOT[inputVal]) maka
         outputVal := true;
     
     outputVal := gateNOT[true]; 
